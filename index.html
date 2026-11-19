@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ProGrid 表格式專案管理系統</title>
+  <title>ProGrid 表格式專案管理系統 - 草圖設計工作室</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Google Fonts: Inter & Noto Sans TC -->
@@ -38,8 +38,8 @@
     /* A4 Invoice Paper Preview & Print Styles */
     .a4-paper {
       width: 210mm;
-      min-height: 297mm;
-      padding: 16mm 18mm;
+      min-height: 295mm;
+      padding: 14mm 16mm;
       background: #ffffff;
       box-sizing: border-box;
       margin: 0 auto;
@@ -89,7 +89,7 @@
         box-shadow: none !important;
         margin: 0 !important;
         width: 210mm !important;
-        min-height: 297mm !important;
+        min-height: 295mm !important;
       }
     }
   </style>
@@ -101,17 +101,17 @@
 
   <!-- Top Navigation Bar -->
   <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
-    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 min-h-16 py-2 flex items-center justify-between gap-4 flex-wrap">
       <!-- Brand Logo & Title -->
       <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-xl bg-brand-600 text-white flex items-center justify-center shadow-sm">
+        <div class="w-9 h-9 rounded-xl bg-brand-600 text-white flex items-center justify-center shadow-sm shrink-0">
           <i data-lucide="receipt" class="w-5 h-5"></i>
         </div>
         <div>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
             <h1 class="text-lg font-bold tracking-tight text-slate-900">ProGrid 專案請款與訂單完結追蹤表</h1>
             <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-              帳務與結案中心
+              草圖設計工作室 • 帳務與結案中心
             </span>
           </div>
           <p class="text-xs text-slate-500 hidden sm:block">訂單確認 • 訂金入帳 • 發票開立 • 請款與完結追蹤</p>
@@ -120,24 +120,24 @@
 
       <!-- Global Action Buttons -->
       <div class="flex items-center gap-2 flex-wrap justify-end">
-        <button onclick="openNewTaskModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium shadow-xs transition cursor-pointer">
+        <button type="button" onclick="openNewTaskModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium shadow-xs transition cursor-pointer">
           <i data-lucide="plus" class="w-4 h-4"></i>
           <span>新增訂單 / 請款</span>
         </button>
 
-        <button onclick="openInvoiceModalForSelection()" title="依已勾選項目生成 A4 請款單 PDF / 列印" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-sm font-medium transition cursor-pointer">
+        <button type="button" onclick="openInvoiceModalForSelection()" title="依已勾選項目生成 A4 請款單 PDF / 列印" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-sm font-medium transition cursor-pointer">
           <i data-lucide="file-text" class="w-4 h-4 text-indigo-600"></i>
           <span class="hidden sm:inline">生成請款單 PDF</span>
         </button>
 
         <div class="h-5 w-px bg-slate-200 mx-1 hidden md:block"></div>
 
-        <button onclick="exportCSV()" title="匯出 Excel 相容請款明細報表" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-sm font-medium transition cursor-pointer">
+        <button type="button" onclick="exportCSV()" title="匯出 Excel 相容請款明細報表" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-sm font-medium transition cursor-pointer">
           <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-600"></i>
           <span class="hidden md:inline">匯出請款 CSV</span>
         </button>
 
-        <button onclick="exportJSON()" title="下載 JSON 備份檔" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-sm font-medium transition cursor-pointer">
+        <button type="button" onclick="exportJSON()" title="下載 JSON 備份檔" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-sm font-medium transition cursor-pointer">
           <i data-lucide="download" class="w-4 h-4 text-slate-500"></i>
           <span class="hidden lg:inline">備份 JSON</span>
         </button>
@@ -148,7 +148,7 @@
           <input type="file" id="json-import-input" accept=".json" class="hidden" onchange="importJSON(event)" />
         </label>
 
-        <button onclick="openConfirmResetModal()" title="重置為台灣工程/設計接案範例資料" class="inline-flex items-center gap-1.5 px-2.5 py-2 rounded-lg bg-white hover:bg-rose-50 text-slate-500 hover:text-rose-600 border border-slate-300 text-sm font-medium transition cursor-pointer">
+        <button type="button" onclick="openConfirmResetModal()" title="重置為台灣工程/設計接案範例資料" class="inline-flex items-center gap-1.5 px-2.5 py-2 rounded-lg bg-white hover:bg-rose-50 text-slate-500 hover:text-rose-600 border border-slate-300 text-sm font-medium transition cursor-pointer">
           <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
         </button>
       </div>
@@ -278,7 +278,7 @@
             placeholder="搜尋專案名稱、客戶、訂單號、發票號碼或驗收單..."
             class="w-full pl-9 pr-8 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition"
           />
-          <button id="clear-search-btn" onclick="clearSearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
+          <button type="button" id="clear-search-btn" onclick="clearSearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
             <i data-lucide="x" class="w-3.5 h-3.5"></i>
           </button>
         </div>
@@ -287,13 +287,13 @@
       <!-- Right: Filters & Bulk Actions -->
       <div class="flex items-center gap-2 flex-wrap">
         <!-- Bulk Generate Invoice PDF Action -->
-        <button id="bulk-invoice-btn" onclick="openInvoiceModalForSelection()" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold transition cursor-pointer">
+        <button type="button" id="bulk-invoice-btn" onclick="openInvoiceModalForSelection()" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold transition cursor-pointer">
           <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
           <span>生成請款單 (<span id="selected-invoice-count">0</span>)</span>
         </button>
 
         <!-- Bulk Delete Action -->
-        <button id="bulk-delete-btn" onclick="deleteSelectedTasks()" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold transition cursor-pointer">
+        <button type="button" id="bulk-delete-btn" onclick="deleteSelectedTasks()" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold transition cursor-pointer">
           <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
           <span>刪除已選 (<span id="selected-count">0</span>)</span>
         </button>
@@ -323,7 +323,7 @@
         </select>
 
         <!-- Reset Filters Button -->
-        <button id="reset-filters-btn" onclick="resetFilters()" class="hidden px-2.5 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-50 rounded-lg transition cursor-pointer">
+        <button type="button" id="reset-filters-btn" onclick="resetFilters()" class="hidden px-2.5 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-50 rounded-lg transition cursor-pointer">
           清除篩選
         </button>
       </div>
@@ -332,12 +332,12 @@
     <!-- 3. Spreadsheet Data Table Container -->
     <section class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden flex flex-col">
       <!-- Helper tip bar -->
-      <div class="px-4 py-2 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between text-xs text-slate-500">
+      <div class="px-4 py-2 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between gap-2 text-xs text-slate-500 flex-wrap">
         <div class="flex items-center gap-2">
-          <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
           <span>提示：雙擊儲存格可直接編輯金額、訂單號、發票資訊或備註；勾選項目或點擊列尾文件圖示可生成 A4 請款單並列印或匯出 PDF。</span>
         </div>
-        <div id="visible-count-label" class="font-medium text-slate-600 shrink-0 ml-2">顯示 0 筆案件</div>
+        <div id="visible-count-label" class="font-medium text-slate-600 shrink-0">顯示 0 筆案件</div>
       </div>
 
       <!-- Horizontal Scroll Wrapper for Responsive Table -->
@@ -489,10 +489,10 @@
 
   <!-- Full Edit / Add Billing Record Modal -->
   <div id="task-modal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 max-h-[92vh] flex flex-col">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-2xl overflow-hidden max-h-[92vh] flex flex-col">
       <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/70 shrink-0">
         <h2 id="modal-title" class="text-base font-bold text-slate-900">編輯專案訂單與請款明細</h2>
-        <button onclick="closeTaskModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition cursor-pointer">
+        <button type="button" onclick="closeTaskModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition cursor-pointer">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
@@ -606,15 +606,15 @@
       <!-- Top Action Bar -->
       <div id="invoice-modal-toolbar" class="px-5 py-3.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-3 flex-wrap shrink-0">
         <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center">
+          <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0">
             <i data-lucide="file-text" class="w-4 h-4"></i>
           </div>
           <div>
-            <h3 class="text-sm font-bold text-slate-900">請款單預覽（A4 標準規格）</h3>
+            <h3 class="text-sm font-bold text-slate-900">請款單預覽（A4 標準規格）— 草圖設計工作室</h3>
             <p class="text-[11px] text-slate-500">可微調請款抬頭或匯款資訊後，直接列印或下載 A4 PDF 檔案</p>
           </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
           <button type="button" onclick="printInvoiceA4()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-semibold shadow-2xs transition cursor-pointer">
             <i data-lucide="printer" class="w-4 h-4 text-slate-600"></i>
             <span>列印 (A4)</span>
@@ -630,7 +630,7 @@
       </div>
 
       <!-- Quick Editable Invoice Header Fields -->
-      <div id="invoice-modal-settings" class="px-5 py-3 bg-indigo-50/50 border-b border-slate-200 grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs shrink-0">
+      <div id="invoice-modal-settings" class="px-5 py-3 bg-indigo-50/50 border-b border-slate-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs shrink-0">
         <div>
           <label class="block font-semibold text-slate-600 mb-1">請款單編號</label>
           <input type="text" id="inv-doc-no" oninput="renderInvoiceDocument()" class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-md font-mono focus:outline-none focus:border-brand-500" />
@@ -641,11 +641,11 @@
         </div>
         <div>
           <label class="block font-semibold text-slate-600 mb-1">請款單位（我方公司）</label>
-          <input type="text" id="inv-issuer-name" value="ProGrid 設計與工程顧問有限公司" oninput="renderInvoiceDocument()" class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-md focus:outline-none focus:border-brand-500" />
+          <input type="text" id="inv-issuer-name" value="草圖設計工作室" oninput="renderInvoiceDocument()" class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-md focus:outline-none focus:border-brand-500" />
         </div>
         <div>
           <label class="block font-semibold text-slate-600 mb-1">匯款銀行與帳號資訊</label>
-          <input type="text" id="inv-bank-info" value="玉山銀行 (808) 新竹分行 帳號：0123-940-123456" oninput="renderInvoiceDocument()" class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-md focus:outline-none focus:border-brand-500" />
+          <input type="text" id="inv-bank-info" value="永豐銀行 (807) 帳號：請填入草圖設計工作室帳號" oninput="renderInvoiceDocument()" class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-md focus:outline-none focus:border-brand-500" />
         </div>
       </div>
 
@@ -663,6 +663,7 @@
     // 1. STATE & CONSTANTS
     // =========================================================================
     const STORAGE_KEY = 'progrid_billing_v1';
+    const DEFAULT_ISSUER_NAME = '草圖設計工作室';
 
     function getTodayISO() {
       const now = new Date();
@@ -677,9 +678,13 @@
       return new Date(d.getTime() - offset).toISOString().split('T')[0];
     }
 
+    function parseNonNegativeNumber(val) {
+      const num = Number(val);
+      return Number.isFinite(num) && num > 0 ? num : 0;
+    }
+
     function formatNT(amount) {
-      const num = Number(amount) || 0;
-      return 'NT$ ' + num.toLocaleString('zh-TW');
+      return 'NT$ ' + parseNonNegativeNumber(amount).toLocaleString('zh-TW');
     }
 
     const STATUS_ORDER = [
@@ -723,7 +728,7 @@
           invoiceNo: 'UV-88412093',
           invoiceDate: addDaysISO(today, -10),
           status: '已請款待收款',
-          targetDate: addDaysISO(today, -2), // Overdue collection alert
+          targetDate: addDaysISO(today, -2),
           notes: '驗收單 UAT-2026-104 已簽回，尾款 70%（NT$ 294,000）月結 30 天待入帳'
         },
         {
@@ -737,7 +742,7 @@
           invoiceNo: '',
           invoiceDate: '',
           status: '待提出發票',
-          targetDate: addDaysISO(today, -1), // Overdue invoice alert
+          targetDate: addDaysISO(today, -1),
           notes: '第二期里程碑已通過現場驗收（ACC-1102），請於本週開立 50% 期中款發票'
         },
         {
@@ -766,7 +771,7 @@
           invoiceDate: addDaysISO(today, -32),
           status: '已完成/完結',
           targetDate: addDaysISO(today, -14),
-          notes: '結案驗收單 CLS-089 完成，全額款項已匯入玉山銀行專戶，正式完結'
+          notes: '結案驗收單 CLS-089 完成，全額款項已匯入指定專戶，正式完結'
         },
         {
           id: 'ord-105',
@@ -819,6 +824,7 @@
     function initApp() {
       document.getElementById('today-label').textContent = getTodayISO();
       document.getElementById('quick-target-date').value = addDaysISO(getTodayISO(), 14);
+      document.getElementById('inv-issuer-name').value = DEFAULT_ISSUER_NAME;
 
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
@@ -839,7 +845,37 @@
         saveTasks();
       }
 
+      bindGlobalModalEvents();
       refreshUI();
+    }
+
+    function bindGlobalModalEvents() {
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        const confirmModal = document.getElementById('confirm-modal');
+        const invoiceModal = document.getElementById('invoice-modal');
+        const taskModal = document.getElementById('task-modal');
+
+        if (!confirmModal.classList.contains('hidden')) {
+          closeConfirmModal();
+        } else if (!invoiceModal.classList.contains('hidden')) {
+          closeInvoiceModal();
+        } else if (!taskModal.classList.contains('hidden')) {
+          closeTaskModal();
+        }
+      });
+
+      document.getElementById('task-modal').addEventListener('click', (e) => {
+        if (e.target.id === 'task-modal') closeTaskModal();
+      });
+
+      document.getElementById('confirm-modal').addEventListener('click', (e) => {
+        if (e.target.id === 'confirm-modal') closeConfirmModal();
+      });
+
+      document.getElementById('invoice-modal').addEventListener('click', (e) => {
+        if (e.target.id === 'invoice-modal') closeInvoiceModal();
+      });
     }
 
     function saveTasks() {
@@ -854,8 +890,8 @@
     // 3. FINANCIAL & BILLING CALCULATIONS
     // =========================================================================
     function getCollectedAmountForTask(task) {
-      const total = Number(task.totalAmount) || 0;
-      const deposit = Number(task.depositAmount) || 0;
+      const total = parseNonNegativeNumber(task.totalAmount);
+      const deposit = parseNonNegativeNumber(task.depositAmount);
       if (task.status === '已完成/完結') {
         return total;
       }
@@ -863,9 +899,8 @@
     }
 
     function getUnbilledAmountForTask(task) {
-      const total = Number(task.totalAmount) || 0;
+      const total = parseNonNegativeNumber(task.totalAmount);
       const collected = getCollectedAmountForTask(task);
-      // Pending invoice/billing includes orders in '待提出發票' or '已請款待收款' (or remaining balance before closure)
       if (task.status === '已完成/完結') return 0;
       if (task.status === '待提出發票' || task.status === '已請款待收款') {
         return Math.max(0, total - collected);
@@ -882,7 +917,7 @@
       const totalOrders = tasks.length;
       const uniqueClients = new Set(tasks.map(t => t.client).filter(Boolean));
 
-      const totalAmount = tasks.reduce((sum, t) => sum + (Number(t.totalAmount) || 0), 0);
+      const totalAmount = tasks.reduce((sum, t) => sum + parseNonNegativeNumber(t.totalAmount), 0);
       const collectedAmount = tasks.reduce((sum, t) => sum + getCollectedAmountForTask(t), 0);
       const depositPaidCount = tasks.filter(t => t.depositPaid).length;
 
@@ -892,7 +927,7 @@
       const awaitingPaymentCount = tasks.filter(t => t.status === '已請款待收款').length;
 
       const overdueTasks = tasks.filter(t => isTaskBillingOverdue(t));
-      const overdueBalance = overdueTasks.reduce((sum, t) => sum + Math.max(0, (Number(t.totalAmount) || 0) - getCollectedAmountForTask(t)), 0);
+      const overdueBalance = overdueTasks.reduce((sum, t) => sum + Math.max(0, parseNonNegativeNumber(t.totalAmount) - getCollectedAmountForTask(t)), 0);
 
       const closedCount = tasks.filter(t => t.status === '已完成/完結').length;
       const closureRate = totalOrders === 0 ? 0 : Math.round((closedCount / totalOrders) * 100);
@@ -952,7 +987,7 @@
             return (a.client || '').localeCompare(b.client || '', 'zh-Hant') * dir;
           }
           if (sortConfig.field === 'totalAmount') {
-            return ((Number(a.totalAmount) || 0) - (Number(b.totalAmount) || 0)) * dir;
+            return (parseNonNegativeNumber(a.totalAmount) - parseNonNegativeNumber(b.totalAmount)) * dir;
           }
           if (sortConfig.field === 'targetDate') {
             const da = a.targetDate || '9999-12-31';
@@ -989,7 +1024,9 @@
       updateFilterDropdownsAndDatalists();
       renderTable();
       updateBulkSelectionUI();
-      lucide.createIcons();
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
     }
 
     function renderTable() {
@@ -1016,7 +1053,7 @@
               <div class="flex flex-col items-center justify-center gap-2">
                 <i data-lucide="file-search" class="w-10 h-10 text-slate-300"></i>
                 <p class="text-sm font-medium text-slate-700">找不到符合條件的訂單或請款紀錄</p>
-                <p class="text-xs text-slate-400">請調整上方篩選条件，或直接在表格最下方快速建立新訂單</p>
+                <p class="text-xs text-slate-400">請調整上方篩選條件，或直接在表格最下方快速建立新訂單</p>
               </div>
             </td>
           </tr>
@@ -1049,7 +1086,7 @@
 
         const groupId = `${viewMode}::${groupKey}`;
         const isCollapsed = collapsedGroups.has(groupId);
-        const groupTotal = groupTasks.reduce((sum, t) => sum + (Number(t.totalAmount) || 0), 0);
+        const groupTotal = groupTasks.reduce((sum, t) => sum + parseNonNegativeNumber(t.totalAmount), 0);
         const groupCollected = groupTasks.reduce((sum, t) => sum + getCollectedAmountForTask(t), 0);
 
         const badgeClass = viewMode === 'group-status'
@@ -1089,8 +1126,8 @@
       const isSelected = selectedIds.has(task.id);
       const statusClass = STATUS_STYLES[task.status] || STATUS_STYLES['待確認訂單'];
       const isClosed = task.status === '已完成/完結';
-      const totalNum = Number(task.totalAmount) || 0;
-      const depositNum = Number(task.depositAmount) || 0;
+      const totalNum = parseNonNegativeNumber(task.totalAmount);
+      const depositNum = parseNonNegativeNumber(task.depositAmount);
 
       return `
         <tr data-id="${task.id}" class="group transition ${isSelected ? 'bg-brand-50/60' : isClosed ? 'bg-emerald-50/15 hover:bg-slate-50/90' : 'hover:bg-slate-50/90'}">
@@ -1191,13 +1228,13 @@
           <!-- Row Actions -->
           <td class="py-2.5 pl-2 pr-4 text-right">
             <div class="inline-flex items-center justify-end gap-1">
-              <button onclick="openInvoiceModalSingle('${task.id}')" title="生成請款單 (A4 PDF / 列印)" class="p-1.5 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer">
+              <button type="button" onclick="openInvoiceModalSingle('${task.id}')" title="生成請款單 (A4 PDF / 列印)" class="p-1.5 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer">
                 <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
               </button>
-              <button onclick="openEditTaskModal('${task.id}')" title="完整編輯請款與發票明細" class="p-1.5 rounded-md text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition cursor-pointer">
+              <button type="button" onclick="openEditTaskModal('${task.id}')" title="完整編輯請款與發票明細" class="p-1.5 rounded-md text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition cursor-pointer">
                 <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
               </button>
-              <button onclick="confirmDeleteSingleTask('${task.id}')" title="刪除此筆紀錄" class="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer">
+              <button type="button" onclick="confirmDeleteSingleTask('${task.id}')" title="刪除此筆紀錄" class="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer">
                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
               </button>
             </div>
@@ -1214,8 +1251,7 @@
       if (!task) return;
       task.status = newStatus;
 
-      // Auto-mark deposit paid when moving to '已收訂金' or '已完成/完結' if deposit > 0
-      if ((newStatus === '已收訂金' || newStatus === '已完成/完結') && (Number(task.depositAmount) || 0) > 0) {
+      if ((newStatus === '已收訂金' || newStatus === '已完成/完結') && parseNonNegativeNumber(task.depositAmount) > 0) {
         task.depositPaid = true;
       }
 
@@ -1247,7 +1283,10 @@
       input.value = originalVal;
       input.className = 'w-full px-2 py-1 text-xs bg-white border border-brand-500 rounded shadow-xs focus:outline-none text-slate-900';
 
+      let saved = false;
       const commit = () => {
+        if (saved) return;
+        saved = true;
         const trimmed = input.value.trim();
         if (field === 'title' && !trimmed) {
           refreshUI();
@@ -1262,8 +1301,9 @@
       input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
-          input.blur();
+          commit();
         } else if (e.key === 'Escape') {
+          saved = true;
           refreshUI();
         }
       });
@@ -1283,12 +1323,14 @@
       input.type = 'number';
       input.min = '0';
       input.step = '1';
-      input.value = Number(task[field]) || 0;
+      input.value = parseNonNegativeNumber(task[field]);
       input.className = 'w-full px-2 py-1 text-xs font-mono text-right bg-white border border-brand-500 rounded shadow-xs focus:outline-none text-slate-900';
 
+      let saved = false;
       const commit = () => {
-        const val = Math.max(0, Number(input.value) || 0);
-        task[field] = val;
+        if (saved) return;
+        saved = true;
+        task[field] = parseNonNegativeNumber(input.value);
         saveTasks();
         refreshUI();
       };
@@ -1297,8 +1339,9 @@
       input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
-          input.blur();
+          commit();
         } else if (e.key === 'Escape') {
+          saved = true;
           refreshUI();
         }
       });
@@ -1328,7 +1371,10 @@
       dateInput.value = task.invoiceDate || getTodayISO();
       dateInput.className = 'w-full px-2 py-0.5 text-[11px] font-mono bg-white border border-slate-300 rounded focus:outline-none';
 
+      let saved = false;
       const commit = () => {
+        if (saved) return;
+        saved = true;
         task.invoiceNo = noInput.value.trim();
         task.invoiceDate = task.invoiceNo ? dateInput.value : '';
         if (task.invoiceNo && task.status === '待提出發票') {
@@ -1345,20 +1391,24 @@
       noInput.focus();
       noInput.select();
 
-      const handleFocusOut = (e) => {
-        setTimeout(() => {
-          if (!wrapper.contains(document.activeElement)) {
-            commit();
-          }
-        }, 100);
+      wrapper.addEventListener('focusout', (e) => {
+        if (!wrapper.contains(e.relatedTarget)) {
+          commit();
+        }
+      });
+
+      const onKeyDown = (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          commit();
+        } else if (e.key === 'Escape') {
+          saved = true;
+          refreshUI();
+        }
       };
 
-      noInput.addEventListener('blur', handleFocusOut);
-      dateInput.addEventListener('blur', handleFocusOut);
-      noInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') commit();
-        if (e.key === 'Escape') refreshUI();
-      });
+      noInput.addEventListener('keydown', onKeyDown);
+      dateInput.addEventListener('keydown', onKeyDown);
     }
 
     function enableInlineDateEdit(cell, id, field) {
@@ -1371,7 +1421,10 @@
       input.value = task[field] || '';
       input.className = 'px-1.5 py-0.5 text-xs bg-white border border-brand-500 rounded focus:outline-none text-slate-900';
 
+      let saved = false;
       const commit = () => {
+        if (saved) return;
+        saved = true;
         task[field] = input.value;
         saveTasks();
         refreshUI();
@@ -1379,8 +1432,11 @@
 
       input.addEventListener('blur', commit);
       input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') input.blur();
-        if (e.key === 'Escape') refreshUI();
+        if (e.key === 'Enter') commit();
+        if (e.key === 'Escape') {
+          saved = true;
+          refreshUI();
+        }
       });
 
       cell.innerHTML = '';
@@ -1409,8 +1465,8 @@
 
       const client = document.getElementById('quick-client').value.trim() || '未指定客戶';
       const orderNo = document.getElementById('quick-order-no').value.trim();
-      const totalAmount = Math.max(0, Number(document.getElementById('quick-total-amount').value) || 0);
-      const depositAmount = Math.max(0, Number(document.getElementById('quick-deposit-amount').value) || 0);
+      const totalAmount = parseNonNegativeNumber(document.getElementById('quick-total-amount').value);
+      const depositAmount = parseNonNegativeNumber(document.getElementById('quick-deposit-amount').value);
       const depositPaid = document.getElementById('quick-deposit-paid').checked;
       const rawInv = document.getElementById('quick-invoice').value.trim();
       const status = document.getElementById('quick-status').value;
@@ -1435,7 +1491,6 @@
       tasks.push(newTask);
       saveTasks();
 
-      // Clear quick fields
       titleInput.value = '';
       document.getElementById('quick-order-no').value = '';
       document.getElementById('quick-total-amount').value = '';
@@ -1479,8 +1534,8 @@
       document.getElementById('modal-title-input').value = task.title;
       document.getElementById('modal-client-input').value = task.client || '';
       document.getElementById('modal-order-no-input').value = task.orderNo || '';
-      document.getElementById('modal-total-amount-input').value = Number(task.totalAmount) || 0;
-      document.getElementById('modal-deposit-amount-input').value = Number(task.depositAmount) || 0;
+      document.getElementById('modal-total-amount-input').value = parseNonNegativeNumber(task.totalAmount);
+      document.getElementById('modal-deposit-amount-input').value = parseNonNegativeNumber(task.depositAmount);
       document.getElementById('modal-deposit-paid-input').checked = Boolean(task.depositPaid);
       document.getElementById('modal-invoice-no-input').value = task.invoiceNo || '';
       document.getElementById('modal-invoice-date-input').value = task.invoiceDate || '';
@@ -1501,7 +1556,7 @@
 
     function handleModalStatusChange() {
       const st = document.getElementById('modal-status-input').value;
-      const depAmt = Number(document.getElementById('modal-deposit-amount-input').value) || 0;
+      const depAmt = parseNonNegativeNumber(document.getElementById('modal-deposit-amount-input').value);
       if ((st === '已收訂金' || st === '已完成/完結') && depAmt > 0) {
         document.getElementById('modal-deposit-paid-input').checked = true;
       }
@@ -1511,7 +1566,7 @@
       e.preventDefault();
       const id = document.getElementById('modal-task-id').value;
       const status = document.getElementById('modal-status-input').value;
-      const depositAmount = Math.max(0, Number(document.getElementById('modal-deposit-amount-input').value) || 0);
+      const depositAmount = parseNonNegativeNumber(document.getElementById('modal-deposit-amount-input').value);
       let depositPaid = document.getElementById('modal-deposit-paid-input').checked;
 
       if ((status === '已收訂金' || status === '已完成/完結') && depositAmount > 0) {
@@ -1522,7 +1577,7 @@
         title: document.getElementById('modal-title-input').value.trim(),
         client: document.getElementById('modal-client-input').value.trim() || '未指定客戶',
         orderNo: document.getElementById('modal-order-no-input').value.trim(),
-        totalAmount: Math.max(0, Number(document.getElementById('modal-total-amount-input').value) || 0),
+        totalAmount: parseNonNegativeNumber(document.getElementById('modal-total-amount-input').value),
         depositAmount,
         depositPaid,
         invoiceNo: document.getElementById('modal-invoice-no-input').value.trim(),
@@ -1566,7 +1621,9 @@
         activeBtn.classList.remove('text-slate-600');
       }
       renderTable();
-      lucide.createIcons();
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
     }
 
     function toggleGroupCollapse(groupId) {
@@ -1576,7 +1633,9 @@
         collapsedGroups.add(groupId);
       }
       renderTable();
-      lucide.createIcons();
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
     }
 
     function toggleSort(field) {
@@ -1592,7 +1651,9 @@
         sortConfig.direction = field === 'totalAmount' ? 'desc' : 'asc';
       }
       renderTable();
-      lucide.createIcons();
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
     }
 
     function handleFilterChange() {
@@ -1606,7 +1667,9 @@
       document.getElementById('reset-filters-btn').classList.toggle('hidden', !hasActiveFilter);
 
       renderTable();
-      lucide.createIcons();
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
     }
 
     function clearSearch() {
@@ -1630,7 +1693,9 @@
       }
       updateBulkSelectionUI();
       renderTable();
-      lucide.createIcons();
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
     }
 
     function toggleSelectAll(checked) {
@@ -1642,7 +1707,9 @@
       }
       updateBulkSelectionUI();
       renderTable();
-      lucide.createIcons();
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
     }
 
     function updateBulkSelectionUI() {
@@ -1769,12 +1836,17 @@
       const serial = String(Math.floor(100 + Math.random() * 900));
       document.getElementById('inv-doc-no').value = `REQ-${today.replace(/-/g, '')}-${serial}`;
       document.getElementById('inv-doc-date').value = today;
+      if (!document.getElementById('inv-issuer-name').value.trim()) {
+        document.getElementById('inv-issuer-name').value = DEFAULT_ISSUER_NAME;
+      }
 
       renderInvoiceDocument();
       const modal = document.getElementById('invoice-modal');
       modal.classList.remove('hidden');
       modal.classList.add('flex');
-      lucide.createIcons();
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
     }
 
     function closeInvoiceModal() {
@@ -1789,7 +1861,7 @@
 
       const docNo = document.getElementById('inv-doc-no').value.trim() || `REQ-${getTodayISO().replace(/-/g, '')}`;
       const docDate = document.getElementById('inv-doc-date').value || getTodayISO();
-      const issuerName = document.getElementById('inv-issuer-name').value.trim() || 'ProGrid 設計與工程顧問有限公司';
+      const issuerName = document.getElementById('inv-issuer-name').value.trim() || DEFAULT_ISSUER_NAME;
       const bankInfo = document.getElementById('inv-bank-info').value.trim();
 
       const uniqueClients = Array.from(new Set(invoiceTargetTasks.map(t => t.client || '未指定客戶')));
@@ -1806,8 +1878,8 @@
       let sumPayableDue = 0;
 
       const rowsHtml = invoiceTargetTasks.map((t, idx) => {
-        const total = Number(t.totalAmount) || 0;
-        const deposit = Number(t.depositAmount) || 0;
+        const total = parseNonNegativeNumber(t.totalAmount);
+        const deposit = parseNonNegativeNumber(t.depositAmount);
         const paid = getCollectedAmountForTask(t);
         const due = Math.max(0, total - paid);
 
@@ -1817,21 +1889,21 @@
 
         return `
           <tr class="border-b border-slate-300 text-[12px]">
-            <td class="py-2.5 px-2 text-center font-mono text-slate-600 align-top">${idx + 1}</td>
-            <td class="py-2.5 px-2.5 align-top">
+            <td class="py-2 px-2 text-center font-mono text-slate-600 align-top">${idx + 1}</td>
+            <td class="py-2 px-2.5 align-top">
               <div class="font-bold text-slate-900">${escapeHtml(t.title)}</div>
               ${uniqueClients.length > 1 ? `<div class="text-[11px] text-slate-600 mt-0.5">客戶：${escapeHtml(t.client || '未指定客戶')}</div>` : ''}
               ${t.notes ? `<div class="text-[11px] text-slate-500 mt-0.5 leading-relaxed">${escapeHtml(t.notes)}</div>` : ''}
             </td>
-            <td class="py-2.5 px-2 font-mono text-[11px] text-slate-700 align-top">
+            <td class="py-2 px-2 font-mono text-[11px] text-slate-700 align-top">
               <div>${escapeHtml(t.orderNo || '—')}</div>
               ${t.invoiceNo ? `<div class="text-slate-500 mt-0.5">發票：${escapeHtml(t.invoiceNo)}</div>` : ''}
             </td>
-            <td class="py-2.5 px-2 text-right font-mono text-slate-800 align-top">${total.toLocaleString('zh-TW')}</td>
-            <td class="py-2.5 px-2 text-right font-mono text-slate-600 align-top">
+            <td class="py-2 px-2 text-right font-mono text-slate-800 align-top">${total.toLocaleString('zh-TW')}</td>
+            <td class="py-2 px-2 text-right font-mono text-slate-600 align-top">
               ${paid > 0 ? '-' + paid.toLocaleString('zh-TW') : (deposit > 0 ? `(${deposit.toLocaleString('zh-TW')}未收)` : '0')}
             </td>
-            <td class="py-2.5 px-2.5 text-right font-mono font-bold text-slate-900 align-top">${due.toLocaleString('zh-TW')}</td>
+            <td class="py-2 px-2.5 text-right font-mono font-bold text-slate-900 align-top">${due.toLocaleString('zh-TW')}</td>
           </tr>
         `;
       }).join('');
@@ -1839,11 +1911,11 @@
       sheet.innerHTML = `
         <div>
           <!-- Top Header -->
-          <div class="border-b-2 border-slate-900 pb-4 flex items-start justify-between gap-4">
+          <div class="border-b-2 border-slate-900 pb-3.5 flex items-start justify-between gap-4">
             <div>
               <div class="text-[11px] font-bold tracking-[0.2em] text-indigo-700 uppercase">STATEMENT OF ACCOUNT / BILLING REQUEST</div>
               <h1 class="text-2xl font-bold tracking-widest text-slate-900 mt-1">請 款 單</h1>
-              <p class="text-xs text-slate-600 mt-1.5 font-medium">${escapeHtml(issuerName)}</p>
+              <p class="text-sm text-slate-800 mt-1 font-bold">${escapeHtml(issuerName)}</p>
             </div>
             <div class="text-right text-xs space-y-1">
               <div class="inline-block px-2.5 py-1 bg-slate-900 text-white font-mono font-semibold text-[11px] rounded-xs">
@@ -1856,13 +1928,13 @@
           </div>
 
           <!-- Client & Billing Meta Box -->
-          <div class="grid grid-cols-2 gap-4 my-5 text-xs">
-            <div class="border border-slate-300 rounded-md p-3.5 bg-slate-50/60">
+          <div class="grid grid-cols-2 gap-4 my-4 text-xs">
+            <div class="border border-slate-300 rounded-md p-3 bg-slate-50/60">
               <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">請款對象（買受人 / 客戶）</div>
               <div class="text-base font-bold text-slate-900">${escapeHtml(clientDisplay)}</div>
-              <div class="text-slate-600 mt-1.5">案件筆數：共 ${invoiceTargetTasks.length} 筆專案工項</div>
+              <div class="text-slate-600 mt-1">案件筆數：共 ${invoiceTargetTasks.length} 筆專案工項</div>
             </div>
-            <div class="border border-slate-300 rounded-md p-3.5 bg-slate-50/60">
+            <div class="border border-slate-300 rounded-md p-3 bg-slate-50/60">
               <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">匯款與收款帳戶資訊</div>
               <div class="text-slate-800 font-medium leading-relaxed">${escapeHtml(bankInfo || '請依合約指定帳戶匯款')}</div>
               <div class="text-slate-600 mt-1">戶名：${escapeHtml(issuerName)}</div>
@@ -1887,7 +1959,7 @@
           </table>
 
           <!-- Financial Summary Box -->
-          <div class="mt-5 flex justify-end">
+          <div class="mt-4 flex justify-end">
             <div class="w-72 border border-slate-300 rounded-md overflow-hidden text-xs">
               <div class="flex justify-between px-3.5 py-2 border-b border-slate-200 bg-slate-50">
                 <span class="text-slate-600">契約專案總金額（含稅）</span>
@@ -1905,21 +1977,21 @@
           </div>
 
           <!-- Terms & Remarks -->
-          <div class="mt-6 border-t border-dashed border-slate-300 pt-3.5 text-[11px] text-slate-600 space-y-1">
+          <div class="mt-5 border-t border-dashed border-slate-300 pt-3 text-[11px] text-slate-600 space-y-1">
             <div class="font-bold text-slate-800">請款說明與注意事項：</div>
             <p>1. 本請款單金額均為新台幣（NT$）含稅價，煩請於預計付款日前完成匯款作業。</p>
-            <p>2. 匯款完成後請通知承辦窗口並提供匯款帳號後五碼，以便核銷帳務並開立／寄送正式統一發票。</p>
+            <p>2. 匯款完成後請通知${escapeHtml(issuerName)}承辦窗口並提供匯款帳號後五碼，以便核銷帳務並開立／寄送正式統一發票。</p>
           </div>
         </div>
 
         <!-- Bottom Signature Section -->
-        <div class="pt-8 mt-8 border-t border-slate-300 grid grid-cols-3 gap-6 text-xs text-slate-700">
+        <div class="pt-6 mt-6 border-t border-slate-300 grid grid-cols-3 gap-6 text-xs text-slate-700">
           <div>
-            <div class="font-semibold mb-8">請款單位經辦 / 覆核：</div>
+            <div class="font-semibold mb-8">${escapeHtml(issuerName)} 經辦 / 覆核：</div>
             <div class="border-b border-slate-400"></div>
           </div>
           <div>
-            <div class="font-semibold mb-8">請款單位公司章：</div>
+            <div class="font-semibold mb-8">${escapeHtml(issuerName)} 發票 / 公司章：</div>
             <div class="border-b border-slate-400"></div>
           </div>
           <div>
@@ -1939,13 +2011,14 @@
       if (!element) return;
 
       const btn = document.getElementById('btn-download-invoice-pdf');
+      const issuerName = (document.getElementById('inv-issuer-name').value || DEFAULT_ISSUER_NAME).trim();
       const docNo = document.getElementById('inv-doc-no').value.trim() || `請款單_${getTodayISO()}`;
       const clientName = invoiceTargetTasks.length === 1 && invoiceTargetTasks[0].client
         ? `_${invoiceTargetTasks[0].client}`
         : '';
 
-      if (typeof html2pdf === 'undefined') {
-        showToast('PDF 元件載入中，為您開啟系統列印另存 PDF', 'info');
+      if (typeof window.html2pdf !== 'function') {
+        showToast('PDF 元件尚未載入，為您開啟系統列印另存 PDF', 'info');
         window.print();
         return;
       }
@@ -1955,18 +2028,18 @@
 
       const opt = {
         margin: 0,
-        filename: `${docNo}${clientName}.pdf`,
+        filename: `${issuerName}_${docNo}${clientName}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
+        html2canvas: { scale: 2, useCORS: true, scrollY: 0, logging: false },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
-      html2pdf()
+      window.html2pdf()
         .set(opt)
         .from(element)
         .save()
         .then(() => {
-          showToast(`已匯出 A4 請款單 PDF（${docNo}${clientName}.pdf）`, 'success');
+          showToast(`已匯出 A4 請款單 PDF（${issuerName}_${docNo}${clientName}.pdf）`, 'success');
         })
         .catch(() => {
           showToast('PDF 匯出發生異常，請改用「列印 (A4)」另存為 PDF', 'error');
@@ -2003,8 +2076,8 @@
       let sumCollected = 0;
 
       const rows = visibleTasks.map(t => {
-        const total = Number(t.totalAmount) || 0;
-        const deposit = Number(t.depositAmount) || 0;
+        const total = parseNonNegativeNumber(t.totalAmount);
+        const deposit = parseNonNegativeNumber(t.depositAmount);
         const collected = getCollectedAmountForTask(t);
         sumTotal += total;
         sumDeposit += deposit;
@@ -2027,7 +2100,6 @@
         ];
       });
 
-      // Summary total row for Excel
       rows.push([
         '合計 (總計 ' + visibleTasks.length + ' 筆)',
         '',
@@ -2061,7 +2133,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `專案請款與訂單報表_${getTodayISO()}.csv`;
+      a.download = `${DEFAULT_ISSUER_NAME}_專案請款與訂單報表_${getTodayISO()}.csv`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -2075,7 +2147,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `ProGrid_請款備份_${getTodayISO()}.json`;
+      a.download = `${DEFAULT_ISSUER_NAME}_請款備份_${getTodayISO()}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -2100,8 +2172,8 @@
             title: String(item.title || '未命名訂單'),
             client: String(item.client || '未指定客戶'),
             orderNo: String(item.orderNo || ''),
-            totalAmount: Math.max(0, Number(item.totalAmount) || 0),
-            depositAmount: Math.max(0, Number(item.depositAmount) || 0),
+            totalAmount: parseNonNegativeNumber(item.totalAmount),
+            depositAmount: parseNonNegativeNumber(item.depositAmount),
             depositPaid: Boolean(item.depositPaid),
             invoiceNo: String(item.invoiceNo || ''),
             invoiceDate: String(item.invoiceDate || ''),
