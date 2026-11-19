@@ -1,0 +1,2167 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ProGrid 表格式專案管理系統</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & Noto Sans TC -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- html2pdf.js for A4 PDF Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* A4 Invoice Paper Preview & Print Styles */
+    .a4-paper {
+      width: 210mm;
+      min-height: 297mm;
+      padding: 16mm 18mm;
+      background: #ffffff;
+      box-sizing: border-box;
+      margin: 0 auto;
+    }
+
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 0;
+      }
+      body {
+        background: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      body > *:not(#invoice-modal) {
+        display: none !important;
+      }
+      #invoice-modal {
+        position: static !important;
+        inset: auto !important;
+        display: block !important;
+        background: #ffffff !important;
+        padding: 0 !important;
+        overflow: visible !important;
+      }
+      #invoice-modal-dialog {
+        box-shadow: none !important;
+        border: none !important;
+        border-radius: 0 !important;
+        max-width: none !important;
+        max-height: none !important;
+        width: 100% !important;
+        height: auto !important;
+        overflow: visible !important;
+      }
+      #invoice-modal-toolbar,
+      #invoice-modal-settings {
+        display: none !important;
+      }
+      #invoice-preview-scroll {
+        padding: 0 !important;
+        background: #ffffff !important;
+        overflow: visible !important;
+      }
+      .a4-paper {
+        box-shadow: none !important;
+        margin: 0 !important;
+        width: 210mm !important;
+        min-height: 297mm !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Top Navigation Bar -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      <!-- Brand Logo & Title -->
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-brand-600 text-white flex items-center justify-center shadow-sm">
+          <i data-lucide="receipt" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg font-bold tracking-tight text-slate-900">ProGrid 專案請款與訂單完結追蹤表</h1>
+            <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+              帳務與結案中心
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 hidden sm:block">訂單確認 • 訂金入帳 • 發票開立 • 請款與完結追蹤</p>
+        </div>
+      </div>
+
+      <!-- Global Action Buttons -->
+      <div class="flex items-center gap-2 flex-wrap justify-end">
+        <button onclick="openNewTaskModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium shadow-xs transition cursor-pointer">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>新增訂單 / 請款</span>
+        </button>
+
+        <button onclick="openInvoiceModalForSelection()" title="依已勾選項目生成 A4 請款單 PDF / 列印" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-sm font-medium transition cursor-pointer">
+          <i data-lucide="file-text" class="w-4 h-4 text-indigo-600"></i>
+          <span class="hidden sm:inline">生成請款單 PDF</span>
+        </button>
+
+        <div class="h-5 w-px bg-slate-200 mx-1 hidden md:block"></div>
+
+        <button onclick="exportCSV()" title="匯出 Excel 相容請款明細報表" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-sm font-medium transition cursor-pointer">
+          <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-600"></i>
+          <span class="hidden md:inline">匯出請款 CSV</span>
+        </button>
+
+        <button onclick="exportJSON()" title="下載 JSON 備份檔" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-sm font-medium transition cursor-pointer">
+          <i data-lucide="download" class="w-4 h-4 text-slate-500"></i>
+          <span class="hidden lg:inline">備份 JSON</span>
+        </button>
+
+        <label title="從 JSON 備份還原" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-sm font-medium transition cursor-pointer">
+          <i data-lucide="upload" class="w-4 h-4 text-slate-500"></i>
+          <span class="hidden lg:inline">匯入還原</span>
+          <input type="file" id="json-import-input" accept=".json" class="hidden" onchange="importJSON(event)" />
+        </label>
+
+        <button onclick="openConfirmResetModal()" title="重置為台灣工程/設計接案範例資料" class="inline-flex items-center gap-1.5 px-2.5 py-2 rounded-lg bg-white hover:bg-rose-50 text-slate-500 hover:text-rose-600 border border-slate-300 text-sm font-medium transition cursor-pointer">
+          <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- 1. Overview Dashboard KPI Cards (5 Financial & Billing Metrics) -->
+    <section aria-label="專案財務與請款儀表板" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <!-- Card 1: Total Order Value -->
+      <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">總專案 / 訂單金額</span>
+          <div class="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
+            <i data-lucide="coins" class="w-4 h-4"></i>
+          </div>
+        </div>
+        <div class="mt-3">
+          <div class="text-xl xl:text-2xl font-bold text-slate-900 font-mono" id="stat-total-amount">NT$ 0</div>
+          <div class="text-xs text-slate-500 mt-1 flex items-center justify-between">
+            <span id="stat-clients-count">涵蓋 0 家客戶</span>
+            <span>含稅/契約總額</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: Collected Deposits & Payments -->
+      <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-emerald-600">已收訂金與已收款總額</span>
+          <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <i data-lucide="badge-dollar-sign" class="w-4 h-4"></i>
+          </div>
+        </div>
+        <div class="mt-3">
+          <div class="text-xl xl:text-2xl font-bold text-emerald-700 font-mono" id="stat-collected-amount">NT$ 0</div>
+          <div class="text-xs text-emerald-600 font-medium mt-1 flex items-center justify-between">
+            <span id="stat-collected-ratio">實收比率 0%</span>
+            <span id="stat-deposit-paid-count">0 筆訂金已入帳</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3: Pending Invoice / Billing Amount -->
+      <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-amber-600">待請款 / 待開發票金額</span>
+          <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+            <i data-lucide="file-clock" class="w-4 h-4"></i>
+          </div>
+        </div>
+        <div class="mt-3">
+          <div class="text-xl xl:text-2xl font-bold text-amber-700 font-mono" id="stat-pending-billing-amount">NT$ 0</div>
+          <div class="text-xs text-amber-700 font-medium mt-1 flex items-center justify-between">
+            <span id="stat-pending-invoice-count">0 筆待提出發票</span>
+            <span id="stat-awaiting-payment-count">0 筆已請待收</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 4: Overdue Billing / Collection Alerts -->
+      <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-rose-600">逾期未請款 / 未收款</span>
+          <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+            <i data-lucide="alert-circle" class="w-4 h-4"></i>
+          </div>
+        </div>
+        <div class="mt-3">
+          <div class="flex items-baseline gap-2">
+            <span class="text-2xl font-bold text-rose-600 font-mono" id="stat-overdue-count">0</span>
+            <span class="text-xs text-rose-600 font-semibold">筆逾期案件</span>
+          </div>
+          <div class="text-xs text-slate-500 mt-1 truncate" id="stat-overdue-amount">
+            逾期金額：NT$ 0
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 5: Closure Rate & Total Orders -->
+      <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs flex flex-col justify-between sm:col-span-2 lg:col-span-1">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600">完結率與總案件數</span>
+          <span class="text-sm font-bold text-indigo-600 font-mono" id="stat-closure-rate">0%</span>
+        </div>
+        <div class="mt-3 space-y-2">
+          <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+            <div id="stat-closure-bar" class="bg-indigo-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+          <p class="text-[11px] text-slate-500 flex justify-between">
+            <span id="stat-closed-fraction">已完結 0 / 0 案</span>
+            <span>基準日：<span id="today-label"></span></span>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Toolbar: View Mode, Search, Filters, Bulk Actions -->
+    <section class="bg-white rounded-xl border border-slate-200 p-3.5 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+      <!-- Left: View Switcher & Search -->
+      <div class="flex flex-col sm:flex-row sm:items-center gap-2.5 flex-1">
+        <!-- View Mode Segmented Control -->
+        <div class="inline-flex rounded-lg bg-slate-100 p-1 border border-slate-200/80 self-start">
+          <button type="button" id="btn-view-group-client" onclick="setViewMode('group-client')" class="view-btn px-2.5 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition cursor-pointer bg-white text-slate-900 shadow-2xs">
+            <i data-lucide="building-2" class="w-3.5 h-3.5 text-brand-600"></i>
+            <span>依客戶分組</span>
+          </button>
+          <button type="button" id="btn-view-group-status" onclick="setViewMode('group-status')" class="view-btn px-2.5 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition cursor-pointer text-slate-600 hover:text-slate-900">
+            <i data-lucide="receipt" class="w-3.5 h-3.5"></i>
+            <span>依請款狀態</span>
+          </button>
+          <button type="button" id="btn-view-list" onclick="setViewMode('list')" class="view-btn px-2.5 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition cursor-pointer text-slate-600 hover:text-slate-900">
+            <i data-lucide="table" class="w-3.5 h-3.5"></i>
+            <span>純列表</span>
+          </button>
+        </div>
+
+        <!-- Search Input -->
+        <div class="relative flex-1 max-w-md">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+          <input
+            type="text"
+            id="search-input"
+            oninput="handleFilterChange()"
+            placeholder="搜尋專案名稱、客戶、訂單號、發票號碼或驗收單..."
+            class="w-full pl-9 pr-8 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition"
+          />
+          <button id="clear-search-btn" onclick="clearSearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
+            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Right: Filters & Bulk Actions -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <!-- Bulk Generate Invoice PDF Action -->
+        <button id="bulk-invoice-btn" onclick="openInvoiceModalForSelection()" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold transition cursor-pointer">
+          <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+          <span>生成請款單 (<span id="selected-invoice-count">0</span>)</span>
+        </button>
+
+        <!-- Bulk Delete Action -->
+        <button id="bulk-delete-btn" onclick="deleteSelectedTasks()" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold transition cursor-pointer">
+          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          <span>刪除已選 (<span id="selected-count">0</span>)</span>
+        </button>
+
+        <!-- Billing Status Filter -->
+        <select id="filter-status" onchange="handleFilterChange()" class="px-2.5 py-1.5 text-xs font-medium bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/30 cursor-pointer">
+          <option value="ALL">所有請款狀態</option>
+          <option value="待確認訂單">待確認訂單</option>
+          <option value="已收訂金">已收訂金</option>
+          <option value="進行中">進行中</option>
+          <option value="待提出發票">待提出發票</option>
+          <option value="已請款待收款">已請款待收款</option>
+          <option value="已完成/完結">已完成/完結</option>
+        </select>
+
+        <!-- Client Filter -->
+        <select id="filter-client" onchange="handleFilterChange()" class="px-2.5 py-1.5 text-xs font-medium bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/30 cursor-pointer">
+          <option value="ALL">所有客戶名稱</option>
+        </select>
+
+        <!-- Overdue / Deposit Filter -->
+        <select id="filter-alert" onchange="handleFilterChange()" class="px-2.5 py-1.5 text-xs font-medium bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/30 cursor-pointer">
+          <option value="ALL">全部帳務條件</option>
+          <option value="OVERDUE">僅顯示逾期未請款/未收款</option>
+          <option value="UNPAID_DEPOSIT">訂金尚未入帳</option>
+          <option value="UNCLOSED">尚未完結案件</option>
+        </select>
+
+        <!-- Reset Filters Button -->
+        <button id="reset-filters-btn" onclick="resetFilters()" class="hidden px-2.5 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-50 rounded-lg transition cursor-pointer">
+          清除篩選
+        </button>
+      </div>
+    </section>
+
+    <!-- 3. Spreadsheet Data Table Container -->
+    <section class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden flex flex-col">
+      <!-- Helper tip bar -->
+      <div class="px-4 py-2 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between text-xs text-slate-500">
+        <div class="flex items-center gap-2">
+          <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span>提示：雙擊儲存格可直接編輯金額、訂單號、發票資訊或備註；勾選項目或點擊列尾文件圖示可生成 A4 請款單並列印或匯出 PDF。</span>
+        </div>
+        <div id="visible-count-label" class="font-medium text-slate-600 shrink-0 ml-2">顯示 0 筆案件</div>
+      </div>
+
+      <!-- Horizontal Scroll Wrapper for Responsive Table -->
+      <div class="overflow-x-auto w-full">
+        <table class="w-full text-left border-collapse min-w-[1410px]" id="project-table">
+          <thead>
+            <tr class="bg-slate-100/90 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-600 select-none">
+              <th class="py-3 pl-4 pr-2 w-10 text-center">
+                <input type="checkbox" id="select-all-checkbox" onchange="toggleSelectAll(this.checked)" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 cursor-pointer" />
+              </th>
+              <th class="py-3 px-3 min-w-[210px]">專案 / 訂單工項名稱</th>
+              <th class="py-3 px-3 min-w-[140px] cursor-pointer hover:bg-slate-200/60 transition" onclick="toggleSort('client')">
+                <div class="flex items-center gap-1">
+                  <span>客戶名稱</span>
+                  <span id="sort-icon-client" class="text-slate-400">↕</span>
+                </div>
+              </th>
+              <th class="py-3 px-3 min-w-[145px]">訂單編號 / 報價單號</th>
+              <th class="py-3 px-3 w-36 text-right cursor-pointer hover:bg-slate-200/60 transition" onclick="toggleSort('totalAmount')">
+                <div class="flex items-center justify-end gap-1">
+                  <span>專案總金額 (NT$)</span>
+                  <span id="sort-icon-totalAmount" class="text-slate-400">↕</span>
+                </div>
+              </th>
+              <th class="py-3 px-3 w-44">訂金金額 / 狀態</th>
+              <th class="py-3 px-3 min-w-[165px]">發票號碼與開立日</th>
+              <th class="py-3 px-3 w-36">請款狀態</th>
+              <th class="py-3 px-3 w-36 cursor-pointer hover:bg-slate-200/60 transition" onclick="toggleSort('targetDate')">
+                <div class="flex items-center gap-1">
+                  <span>預計請款日 / 結案日</span>
+                  <span id="sort-icon-targetDate" class="text-slate-400">↕</span>
+                </div>
+              </th>
+              <th class="py-3 px-3 min-w-[190px]">備註 / 驗收單號</th>
+              <th class="py-3 pl-2 pr-4 w-28 text-right">操作</th>
+            </tr>
+          </thead>
+
+          <!-- Dynamic Table Body -->
+          <tbody id="table-body" class="divide-y divide-slate-200 text-sm">
+            <!-- Rows injected via JavaScript -->
+          </tbody>
+
+          <!-- Inline Quick-Add Row Footer -->
+          <tfoot class="bg-slate-50/90 border-t-2 border-slate-200">
+            <tr class="hover:bg-brand-50/30 transition">
+              <td class="py-2.5 pl-4 pr-2 text-center text-brand-600">
+                <i data-lucide="plus-circle" class="w-4 h-4 mx-auto"></i>
+              </td>
+              <td class="py-2 px-3">
+                <input
+                  type="text"
+                  id="quick-title"
+                  placeholder="+ 輸入專案或訂單名稱，按 Enter 新增..."
+                  onkeydown="handleQuickAddKeydown(event)"
+                  class="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 placeholder:text-slate-400"
+                />
+              </td>
+              <td class="py-2 px-3">
+                <input
+                  type="text"
+                  id="quick-client"
+                  list="client-suggestions"
+                  placeholder="客戶名稱"
+                  onkeydown="handleQuickAddKeydown(event)"
+                  class="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500"
+                />
+                <datalist id="client-suggestions"></datalist>
+              </td>
+              <td class="py-2 px-3">
+                <input
+                  type="text"
+                  id="quick-order-no"
+                  placeholder="ORD-2026-..."
+                  onkeydown="handleQuickAddKeydown(event)"
+                  class="w-full px-2.5 py-1.5 text-xs font-mono bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500"
+                />
+              </td>
+              <td class="py-2 px-3">
+                <input
+                  type="number"
+                  id="quick-total-amount"
+                  min="0"
+                  step="1000"
+                  placeholder="總金額"
+                  onkeydown="handleQuickAddKeydown(event)"
+                  class="w-full px-2.5 py-1.5 text-xs font-mono text-right bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500"
+                />
+              </td>
+              <td class="py-2 px-3">
+                <div class="flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    id="quick-deposit-amount"
+                    min="0"
+                    step="1000"
+                    placeholder="訂金"
+                    onkeydown="handleQuickAddKeydown(event)"
+                    class="w-24 px-2 py-1.5 text-xs font-mono text-right bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+                  />
+                  <label class="inline-flex items-center gap-1 text-[11px] text-slate-600 cursor-pointer shrink-0">
+                    <input type="checkbox" id="quick-deposit-paid" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                    <span>已收</span>
+                  </label>
+                </div>
+              </td>
+              <td class="py-2 px-3">
+                <input
+                  type="text"
+                  id="quick-invoice"
+                  placeholder="發票號碼 / 日期"
+                  onkeydown="handleQuickAddKeydown(event)"
+                  class="w-full px-2.5 py-1.5 text-xs font-mono bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+                />
+              </td>
+              <td class="py-2 px-3">
+                <select id="quick-status" class="w-full px-2 py-1.5 text-xs bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500/40">
+                  <option value="待確認訂單">待確認訂單</option>
+                  <option value="已收訂金">已收訂金</option>
+                  <option value="進行中">進行中</option>
+                  <option value="待提出發票">待提出發票</option>
+                  <option value="已請款待收款">已請款待收款</option>
+                  <option value="已完成/完結">已完成/完結</option>
+                </select>
+              </td>
+              <td class="py-2 px-3">
+                <input type="date" id="quick-target-date" class="w-full px-2 py-1 text-xs bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500/40" />
+              </td>
+              <td class="py-2 px-3">
+                <input
+                  type="text"
+                  id="quick-notes"
+                  placeholder="驗收單號或請款條件..."
+                  onkeydown="handleQuickAddKeydown(event)"
+                  class="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+                />
+              </td>
+              <td class="py-2 pl-2 pr-4 text-right">
+                <button type="button" onclick="submitQuickAdd()" class="px-3 py-1.5 rounded-md bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium shadow-2xs transition cursor-pointer">
+                  加入
+                </button>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Full Edit / Add Billing Record Modal -->
+  <div id="task-modal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 max-h-[92vh] flex flex-col">
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/70 shrink-0">
+        <h2 id="modal-title" class="text-base font-bold text-slate-900">編輯專案訂單與請款明細</h2>
+        <button onclick="closeTaskModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="task-form" onsubmit="saveTaskFromModal(event)" class="p-6 space-y-4 overflow-y-auto">
+        <input type="hidden" id="modal-task-id" />
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-semibold text-slate-700 mb-1">專案 / 訂單工項名稱 <span class="text-rose-500">*</span></label>
+            <input type="text" id="modal-title-input" required placeholder="例如：企業形象官網改版與後台 CMS 開發" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">客戶名稱 <span class="text-rose-500">*</span></label>
+            <input type="text" id="modal-client-input" list="client-suggestions" required placeholder="例如：台達電子工業股份有限公司" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">訂單編號 / 報價單號</label>
+            <input type="text" id="modal-order-no-input" placeholder="例如：ORD-2026-1108 / QT-892" class="w-full px-3 py-2 text-sm font-mono border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">專案總金額 (NT$ 含稅) <span class="text-rose-500">*</span></label>
+            <input type="number" id="modal-total-amount-input" min="0" step="1" required placeholder="例如：480000" class="w-full px-3 py-2 text-sm font-mono border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">訂金金額 (NT$) 與入帳狀態</label>
+            <div class="flex items-center gap-2">
+              <input type="number" id="modal-deposit-amount-input" min="0" step="1" placeholder="例如：144000" class="w-full px-3 py-2 text-sm font-mono border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500" />
+              <label class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-300 bg-slate-50 text-xs font-semibold text-slate-700 cursor-pointer shrink-0">
+                <input type="checkbox" id="modal-deposit-paid-input" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                <span>訂金已收</span>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">發票號碼</label>
+            <input type="text" id="modal-invoice-no-input" placeholder="例如：AB-11223344（尚未開立可留白）" class="w-full px-3 py-2 text-sm font-mono border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">發票開立日</label>
+            <input type="date" id="modal-invoice-date-input" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">請款與結案狀態</label>
+            <select id="modal-status-input" onchange="handleModalStatusChange()" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 bg-white">
+              <option value="待確認訂單">待確認訂單</option>
+              <option value="已收訂金">已收訂金</option>
+              <option value="進行中">進行中</option>
+              <option value="待提出發票">待提出發票</option>
+              <option value="已請款待收款">已請款待收款</option>
+              <option value="已完成/完結">已完成/完結</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">預計請款日 / 結案日</label>
+            <input type="date" id="modal-target-date-input" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500" />
+          </div>
+
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-semibold text-slate-700 mb-1">備註 / 驗收單號</label>
+            <textarea id="modal-notes-input" rows="3" placeholder="填寫驗收單號（如 UAT-2026-09）、付款條件（月結 30 天）、尾款比例或窗口資訊..." class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"></textarea>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
+          <button type="button" onclick="closeTaskModal()" class="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium transition cursor-pointer">
+            取消
+          </button>
+          <button type="submit" class="px-5 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium shadow-xs transition cursor-pointer">
+            儲存請款資料
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Custom Confirmation Modal (Replaces window.confirm) -->
+  <div id="confirm-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-md p-6 space-y-4">
+      <div class="flex items-start gap-3">
+        <div class="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+          <i data-lucide="alert-circle" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 id="confirm-modal-title" class="text-base font-bold text-slate-900">確認操作</h3>
+          <p id="confirm-modal-message" class="text-sm text-slate-600 mt-1">確定要執行此動作嗎？此操作無法復原。</p>
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button type="button" onclick="closeConfirmModal()" class="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium transition cursor-pointer">
+          取消
+        </button>
+        <button type="button" id="confirm-modal-action-btn" class="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-sm font-medium shadow-xs transition cursor-pointer">
+          確定執行
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- A4 Billing Invoice Preview & PDF Export Modal -->
+  <div id="invoice-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 backdrop-blur-xs p-2 sm:p-4">
+    <div id="invoice-modal-dialog" class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-5xl max-h-[95vh] flex flex-col overflow-hidden">
+      <!-- Top Action Bar -->
+      <div id="invoice-modal-toolbar" class="px-5 py-3.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-3 flex-wrap shrink-0">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center">
+            <i data-lucide="file-text" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">請款單預覽（A4 標準規格）</h3>
+            <p class="text-[11px] text-slate-500">可微調請款抬頭或匯款資訊後，直接列印或下載 A4 PDF 檔案</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="printInvoiceA4()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-semibold shadow-2xs transition cursor-pointer">
+            <i data-lucide="printer" class="w-4 h-4 text-slate-600"></i>
+            <span>列印 (A4)</span>
+          </button>
+          <button type="button" id="btn-download-invoice-pdf" onclick="downloadInvoicePDF()" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold shadow-xs transition cursor-pointer">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            <span>下載 PDF 檔</span>
+          </button>
+          <button type="button" onclick="closeInvoiceModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/70 transition cursor-pointer ml-1">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Editable Invoice Header Fields -->
+      <div id="invoice-modal-settings" class="px-5 py-3 bg-indigo-50/50 border-b border-slate-200 grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs shrink-0">
+        <div>
+          <label class="block font-semibold text-slate-600 mb-1">請款單編號</label>
+          <input type="text" id="inv-doc-no" oninput="renderInvoiceDocument()" class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-md font-mono focus:outline-none focus:border-brand-500" />
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-600 mb-1">請款日期</label>
+          <input type="date" id="inv-doc-date" oninput="renderInvoiceDocument()" class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-md font-mono focus:outline-none focus:border-brand-500" />
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-600 mb-1">請款單位（我方公司）</label>
+          <input type="text" id="inv-issuer-name" value="ProGrid 設計與工程顧問有限公司" oninput="renderInvoiceDocument()" class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-md focus:outline-none focus:border-brand-500" />
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-600 mb-1">匯款銀行與帳號資訊</label>
+          <input type="text" id="inv-bank-info" value="玉山銀行 (808) 新竹分行 帳號：0123-940-123456" oninput="renderInvoiceDocument()" class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-md focus:outline-none focus:border-brand-500" />
+        </div>
+      </div>
+
+      <!-- Scrollable A4 Paper Preview Area -->
+      <div id="invoice-preview-scroll" class="flex-1 overflow-auto bg-slate-200/80 p-4 sm:p-6">
+        <div id="a4-invoice-sheet" class="a4-paper shadow-lg text-slate-800 flex flex-col justify-between">
+          <!-- Dynamic A4 Invoice Content Injected Here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. STATE & CONSTANTS
+    // =========================================================================
+    const STORAGE_KEY = 'progrid_billing_v1';
+
+    function getTodayISO() {
+      const now = new Date();
+      const offset = now.getTimezoneOffset() * 60000;
+      return new Date(now.getTime() - offset).toISOString().split('T')[0];
+    }
+
+    function addDaysISO(baseISO, days) {
+      const d = new Date(baseISO + 'T00:00:00');
+      d.setDate(d.getDate() + days);
+      const offset = d.getTimezoneOffset() * 60000;
+      return new Date(d.getTime() - offset).toISOString().split('T')[0];
+    }
+
+    function formatNT(amount) {
+      const num = Number(amount) || 0;
+      return 'NT$ ' + num.toLocaleString('zh-TW');
+    }
+
+    const STATUS_ORDER = [
+      '待確認訂單',
+      '已收訂金',
+      '進行中',
+      '待提出發票',
+      '已請款待收款',
+      '已完成/完結'
+    ];
+
+    const STATUS_STYLES = {
+      '待確認訂單':   'bg-slate-100 text-slate-700 border-slate-300',
+      '已收訂金':     'bg-cyan-50 text-cyan-700 border-cyan-300',
+      '進行中':       'bg-blue-50 text-blue-700 border-blue-300',
+      '待提出發票':   'bg-amber-50 text-amber-800 border-amber-300',
+      '已請款待收款': 'bg-purple-50 text-purple-700 border-purple-300',
+      '已完成/完結':  'bg-emerald-50 text-emerald-700 border-emerald-300',
+    };
+
+    let tasks = [];
+    let selectedIds = new Set();
+    let collapsedGroups = new Set();
+    let viewMode = 'group-client'; // 'group-client' | 'group-status' | 'list'
+    let sortConfig = { field: null, direction: 'asc' }; // 'client' | 'totalAmount' | 'targetDate'
+    let pendingConfirmCallback = null;
+    let invoiceTargetTasks = [];
+
+    // Realistic Taiwan Engineering / Design Studio Billing & Order Sample Data
+    function getDefaultSampleTasks() {
+      const today = getTodayISO();
+      return [
+        {
+          id: 'ord-101',
+          title: '企業品牌識別系統 (CIS) 與官網視覺設計',
+          client: '宏碁智醫股份有限公司',
+          orderNo: 'ORD-2026-081 / QT-2607',
+          totalAmount: 420000,
+          depositAmount: 126000,
+          depositPaid: true,
+          invoiceNo: 'UV-88412093',
+          invoiceDate: addDaysISO(today, -10),
+          status: '已請款待收款',
+          targetDate: addDaysISO(today, -2), // Overdue collection alert
+          notes: '驗收單 UAT-2026-104 已簽回，尾款 70%（NT$ 294,000）月結 30 天待入帳'
+        },
+        {
+          id: 'ord-102',
+          title: '智慧工廠產線戰情室 UI/UX 與前端開發',
+          client: '研華科技股份有限公司',
+          orderNo: 'ORD-2026-094 / PO-99210',
+          totalAmount: 850000,
+          depositAmount: 255000,
+          depositPaid: true,
+          invoiceNo: '',
+          invoiceDate: '',
+          status: '待提出發票',
+          targetDate: addDaysISO(today, -1), // Overdue invoice alert
+          notes: '第二期里程碑已通過現場驗收（ACC-1102），請於本週開立 50% 期中款發票'
+        },
+        {
+          id: 'ord-103',
+          title: '竹北生醫園區無塵室監控儀表板工程',
+          client: '台康生技股份有限公司',
+          orderNo: 'ORD-2026-102 / QT-2645',
+          totalAmount: 680000,
+          depositAmount: 204000,
+          depositPaid: true,
+          invoiceNo: 'UV-88412015',
+          invoiceDate: addDaysISO(today, -25),
+          status: '進行中',
+          targetDate: addDaysISO(today, 12),
+          notes: '訂金 30% 發票已開立並入帳，目前進行現場感測器圖控整合'
+        },
+        {
+          id: 'ord-104',
+          title: '2026 週年慶全通路電商活動頁與互動遊戲',
+          client: '誠品生活股份有限公司',
+          orderNo: 'ORD-2026-067 / PO-77412',
+          totalAmount: 320000,
+          depositAmount: 96000,
+          depositPaid: true,
+          invoiceNo: 'UV-88411890',
+          invoiceDate: addDaysISO(today, -32),
+          status: '已完成/完結',
+          targetDate: addDaysISO(today, -14),
+          notes: '結案驗收單 CLS-089 完成，全額款項已匯入玉山銀行專戶，正式完結'
+        },
+        {
+          id: 'ord-105',
+          title: '自動倉儲 AGV 派車系統控制介面重構',
+          client: '研華科技股份有限公司',
+          orderNo: 'ORD-2026-115 / QT-2688',
+          totalAmount: 540000,
+          depositAmount: 162000,
+          depositPaid: true,
+          invoiceNo: 'UV-88412140',
+          invoiceDate: addDaysISO(today, -3),
+          status: '已收訂金',
+          targetDate: addDaysISO(today, 20),
+          notes: '30% 訂金已匯款確認，下週一召開 Kick-off 需求確認會議'
+        },
+        {
+          id: 'ord-106',
+          title: '碳盤查數據申報平台年度維護與功能擴充',
+          client: '台灣水泥股份有限公司',
+          orderNo: 'QT-2026-2701（待回簽）',
+          totalAmount: 380000,
+          depositAmount: 114000,
+          depositPaid: false,
+          invoiceNo: '',
+          invoiceDate: '',
+          status: '待確認訂單',
+          targetDate: addDaysISO(today, 5),
+          notes: '報價單已送採購部門審核，待正式用印回傳後開立訂金請款單'
+        },
+        {
+          id: 'ord-107',
+          title: '智慧零售門市數位看板播放排程中台',
+          client: '誠品生活股份有限公司',
+          orderNo: 'ORD-2026-052 / PO-77105',
+          totalAmount: 460000,
+          depositAmount: 138000,
+          depositPaid: true,
+          invoiceNo: 'UV-88411755',
+          invoiceDate: addDaysISO(today, -45),
+          status: '已完成/完結',
+          targetDate: addDaysISO(today, -20),
+          notes: '驗收單 ACC-074 歸檔，保固期一年起算，全案已結清'
+        }
+      ];
+    }
+
+    // =========================================================================
+    // 2. INITIALIZATION & STORAGE
+    // =========================================================================
+    function initApp() {
+      document.getElementById('today-label').textContent = getTodayISO();
+      document.getElementById('quick-target-date').value = addDaysISO(getTodayISO(), 14);
+
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            tasks = parsed;
+          } else {
+            tasks = getDefaultSampleTasks();
+            saveTasks();
+          }
+        } catch (e) {
+          tasks = getDefaultSampleTasks();
+          saveTasks();
+        }
+      } else {
+        tasks = getDefaultSampleTasks();
+        saveTasks();
+      }
+
+      refreshUI();
+    }
+
+    function saveTasks() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      } catch (e) {
+        showToast('瀏覽器儲存空間不足，無法自動存檔', 'error');
+      }
+    }
+
+    // =========================================================================
+    // 3. FINANCIAL & BILLING CALCULATIONS
+    // =========================================================================
+    function getCollectedAmountForTask(task) {
+      const total = Number(task.totalAmount) || 0;
+      const deposit = Number(task.depositAmount) || 0;
+      if (task.status === '已完成/完結') {
+        return total;
+      }
+      return task.depositPaid ? Math.min(total, deposit) : 0;
+    }
+
+    function getUnbilledAmountForTask(task) {
+      const total = Number(task.totalAmount) || 0;
+      const collected = getCollectedAmountForTask(task);
+      // Pending invoice/billing includes orders in '待提出發票' or '已請款待收款' (or remaining balance before closure)
+      if (task.status === '已完成/完結') return 0;
+      if (task.status === '待提出發票' || task.status === '已請款待收款') {
+        return Math.max(0, total - collected);
+      }
+      return 0;
+    }
+
+    function isTaskBillingOverdue(task) {
+      if (!task.targetDate || task.status === '已完成/完結') return false;
+      return task.targetDate < getTodayISO();
+    }
+
+    function updateDashboardStats() {
+      const totalOrders = tasks.length;
+      const uniqueClients = new Set(tasks.map(t => t.client).filter(Boolean));
+
+      const totalAmount = tasks.reduce((sum, t) => sum + (Number(t.totalAmount) || 0), 0);
+      const collectedAmount = tasks.reduce((sum, t) => sum + getCollectedAmountForTask(t), 0);
+      const depositPaidCount = tasks.filter(t => t.depositPaid).length;
+
+      const pendingBillingTasks = tasks.filter(t => t.status === '待提出發票' || t.status === '已請款待收款');
+      const pendingBillingAmount = pendingBillingTasks.reduce((sum, t) => sum + getUnbilledAmountForTask(t), 0);
+      const pendingInvoiceCount = tasks.filter(t => t.status === '待提出發票').length;
+      const awaitingPaymentCount = tasks.filter(t => t.status === '已請款待收款').length;
+
+      const overdueTasks = tasks.filter(t => isTaskBillingOverdue(t));
+      const overdueBalance = overdueTasks.reduce((sum, t) => sum + Math.max(0, (Number(t.totalAmount) || 0) - getCollectedAmountForTask(t)), 0);
+
+      const closedCount = tasks.filter(t => t.status === '已完成/完結').length;
+      const closureRate = totalOrders === 0 ? 0 : Math.round((closedCount / totalOrders) * 100);
+      const collectedRatio = totalAmount === 0 ? 0 : Math.round((collectedAmount / totalAmount) * 100);
+
+      document.getElementById('stat-total-amount').textContent = formatNT(totalAmount);
+      document.getElementById('stat-clients-count').textContent = `涵蓋 ${uniqueClients.size} 家客戶`;
+
+      document.getElementById('stat-collected-amount').textContent = formatNT(collectedAmount);
+      document.getElementById('stat-collected-ratio').textContent = `實收比率 ${collectedRatio}%`;
+      document.getElementById('stat-deposit-paid-count').textContent = `${depositPaidCount} 筆訂金已入帳`;
+
+      document.getElementById('stat-pending-billing-amount').textContent = formatNT(pendingBillingAmount);
+      document.getElementById('stat-pending-invoice-count').textContent = `${pendingInvoiceCount} 筆待開發票`;
+      document.getElementById('stat-awaiting-payment-count').textContent = `${awaitingPaymentCount} 筆已請待收`;
+
+      document.getElementById('stat-overdue-count').textContent = overdueTasks.length;
+      document.getElementById('stat-overdue-amount').textContent = `未收餘額：${formatNT(overdueBalance)}`;
+
+      document.getElementById('stat-closure-rate').textContent = `${closureRate}%`;
+      document.getElementById('stat-closure-bar').style.width = `${closureRate}%`;
+      document.getElementById('stat-closed-fraction').textContent = `已完結 ${closedCount} / ${totalOrders} 案`;
+    }
+
+    function getFilteredAndSortedTasks() {
+      const search = document.getElementById('search-input').value.trim().toLowerCase();
+      const statusFilter = document.getElementById('filter-status').value;
+      const clientFilter = document.getElementById('filter-client').value;
+      const alertFilter = document.getElementById('filter-alert').value;
+
+      let result = tasks.filter(task => {
+        if (statusFilter !== 'ALL' && task.status !== statusFilter) return false;
+        if (clientFilter !== 'ALL' && (task.client || '未指定客戶') !== clientFilter) return false;
+
+        if (alertFilter === 'OVERDUE' && !isTaskBillingOverdue(task)) return false;
+        if (alertFilter === 'UNPAID_DEPOSIT' && task.depositPaid) return false;
+        if (alertFilter === 'UNCLOSED' && task.status === '已完成/完結') return false;
+
+        if (search) {
+          const haystack = [
+            task.title,
+            task.client,
+            task.orderNo,
+            task.invoiceNo,
+            task.status,
+            task.notes
+          ].join(' ').toLowerCase();
+          if (!haystack.includes(search)) return false;
+        }
+        return true;
+      });
+
+      if (sortConfig.field) {
+        const dir = sortConfig.direction === 'asc' ? 1 : -1;
+        result.sort((a, b) => {
+          if (sortConfig.field === 'client') {
+            return (a.client || '').localeCompare(b.client || '', 'zh-Hant') * dir;
+          }
+          if (sortConfig.field === 'totalAmount') {
+            return ((Number(a.totalAmount) || 0) - (Number(b.totalAmount) || 0)) * dir;
+          }
+          if (sortConfig.field === 'targetDate') {
+            const da = a.targetDate || '9999-12-31';
+            const db = b.targetDate || '9999-12-31';
+            return da.localeCompare(db) * dir;
+          }
+          return 0;
+        });
+      }
+
+      return result;
+    }
+
+    function updateFilterDropdownsAndDatalists() {
+      const clients = Array.from(new Set(tasks.map(t => t.client || '未指定客戶'))).sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+
+      const clientSelect = document.getElementById('filter-client');
+      const currentClient = clientSelect.value;
+      clientSelect.innerHTML = '<option value="ALL">所有客戶名稱</option>' +
+        clients.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+      if (clients.includes(currentClient)) {
+        clientSelect.value = currentClient;
+      }
+
+      document.getElementById('client-suggestions').innerHTML =
+        clients.filter(c => c !== '未指定客戶').map(c => `<option value="${escapeHtml(c)}"></option>`).join('');
+    }
+
+    // =========================================================================
+    // 4. TABLE RENDERING
+    // =========================================================================
+    function refreshUI() {
+      updateDashboardStats();
+      updateFilterDropdownsAndDatalists();
+      renderTable();
+      updateBulkSelectionUI();
+      lucide.createIcons();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('table-body');
+      const filteredTasks = getFilteredAndSortedTasks();
+      document.getElementById('visible-count-label').textContent = `顯示 ${filteredTasks.length} / ${tasks.length} 筆案件`;
+
+      ['client', 'totalAmount', 'targetDate'].forEach(field => {
+        const el = document.getElementById(`sort-icon-${field}`);
+        if (!el) return;
+        if (sortConfig.field === field) {
+          el.textContent = sortConfig.direction === 'asc' ? '↑' : '↓';
+          el.className = 'text-brand-600 font-bold';
+        } else {
+          el.textContent = '↕';
+          el.className = 'text-slate-400';
+        }
+      });
+
+      if (filteredTasks.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="11" class="py-12 text-center text-slate-500">
+              <div class="flex flex-col items-center justify-center gap-2">
+                <i data-lucide="file-search" class="w-10 h-10 text-slate-300"></i>
+                <p class="text-sm font-medium text-slate-700">找不到符合條件的訂單或請款紀錄</p>
+                <p class="text-xs text-slate-400">請調整上方篩選条件，或直接在表格最下方快速建立新訂單</p>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      if (viewMode === 'list') {
+        tbody.innerHTML = filteredTasks.map(task => renderTaskRow(task)).join('');
+        return;
+      }
+
+      // Grouped rendering ('group-client' or 'group-status')
+      const groups = new Map();
+      if (viewMode === 'group-status') {
+        STATUS_ORDER.forEach(s => groups.set(s, []));
+      }
+
+      filteredTasks.forEach(task => {
+        const key = viewMode === 'group-client'
+          ? (task.client || '未指定客戶')
+          : (task.status || '待確認訂單');
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(task);
+      });
+
+      let html = '';
+      groups.forEach((groupTasks, groupKey) => {
+        if (groupTasks.length === 0 && viewMode === 'group-status') return;
+
+        const groupId = `${viewMode}::${groupKey}`;
+        const isCollapsed = collapsedGroups.has(groupId);
+        const groupTotal = groupTasks.reduce((sum, t) => sum + (Number(t.totalAmount) || 0), 0);
+        const groupCollected = groupTasks.reduce((sum, t) => sum + getCollectedAmountForTask(t), 0);
+
+        const badgeClass = viewMode === 'group-status'
+          ? (STATUS_STYLES[groupKey] || 'bg-slate-100 text-slate-700 border-slate-300')
+          : 'bg-brand-50 text-brand-700 border-brand-200';
+
+        html += `
+          <tr class="bg-slate-100/80 hover:bg-slate-200/50 transition select-none border-y border-slate-200/90">
+            <td colspan="11" class="py-2 px-4">
+              <div class="flex items-center justify-between gap-4 flex-wrap">
+                <button type="button" onclick="toggleGroupCollapse('${escapeJsString(groupId)}')" class="flex items-center gap-2 text-left font-semibold text-slate-800 cursor-pointer">
+                  <i data-lucide="${isCollapsed ? 'chevron-right' : 'chevron-down'}" class="w-4 h-4 text-slate-500"></i>
+                  <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold border ${badgeClass}">
+                    ${escapeHtml(groupKey)}
+                  </span>
+                  <span class="text-xs font-normal text-slate-500">${groupTasks.length} 筆訂單</span>
+                </button>
+                <div class="flex items-center gap-4 text-xs">
+                  <span class="text-slate-500">小計金額：<strong class="font-mono text-slate-800">${formatNT(groupTotal)}</strong></span>
+                  <span class="text-emerald-700">已收：<strong class="font-mono">${formatNT(groupCollected)}</strong></span>
+                </div>
+              </div>
+            </td>
+          </tr>
+        `;
+
+        if (!isCollapsed) {
+          html += groupTasks.map(task => renderTaskRow(task)).join('');
+        }
+      });
+
+      tbody.innerHTML = html;
+    }
+
+    function renderTaskRow(task) {
+      const overdue = isTaskBillingOverdue(task);
+      const isSelected = selectedIds.has(task.id);
+      const statusClass = STATUS_STYLES[task.status] || STATUS_STYLES['待確認訂單'];
+      const isClosed = task.status === '已完成/完結';
+      const totalNum = Number(task.totalAmount) || 0;
+      const depositNum = Number(task.depositAmount) || 0;
+
+      return `
+        <tr data-id="${task.id}" class="group transition ${isSelected ? 'bg-brand-50/60' : isClosed ? 'bg-emerald-50/15 hover:bg-slate-50/90' : 'hover:bg-slate-50/90'}">
+          <!-- Checkbox -->
+          <td class="py-2.5 pl-4 pr-2 text-center">
+            <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleSelectTask('${task.id}', this.checked)" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 cursor-pointer" />
+          </td>
+
+          <!-- Project / Order Item Title -->
+          <td class="py-2.5 px-3 font-medium text-slate-900" ondblclick="enableInlineTextEdit(this, '${task.id}', 'title')">
+            <div class="flex items-center gap-1.5">
+              ${isClosed ? '<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600 shrink-0"></i>' : ''}
+              <span class="${isClosed ? 'text-slate-500' : 'text-slate-900'} leading-snug cursor-text" title="雙擊編輯專案名稱">
+                ${escapeHtml(task.title)}
+              </span>
+            </div>
+          </td>
+
+          <!-- Client Name -->
+          <td class="py-2.5 px-3 text-xs" ondblclick="enableInlineTextEdit(this, '${task.id}', 'client')">
+            <span class="inline-block px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium border border-slate-200/80 max-w-[160px] truncate cursor-text" title="${escapeHtml(task.client)} (雙擊編輯客戶)">
+              ${escapeHtml(task.client || '未指定客戶')}
+            </span>
+          </td>
+
+          <!-- Order / Quote No. -->
+          <td class="py-2.5 px-3 text-xs font-mono text-slate-600" ondblclick="enableInlineTextEdit(this, '${task.id}', 'orderNo')">
+            <span class="cursor-text hover:text-brand-600" title="雙擊編輯訂單/報價單號">
+              ${escapeHtml(task.orderNo || '—')}
+            </span>
+          </td>
+
+          <!-- Total Amount (NT$) -->
+          <td class="py-2.5 px-3 text-xs font-mono font-bold text-right text-slate-900" ondblclick="enableInlineNumberEdit(this, '${task.id}', 'totalAmount')">
+            <span class="cursor-text hover:text-brand-600" title="雙擊編輯專案總金額">
+              ${formatNT(totalNum)}
+            </span>
+          </td>
+
+          <!-- Deposit Amount & Paid Status -->
+          <td class="py-2.5 px-3 text-xs">
+            <div class="flex items-center justify-between gap-2 bg-slate-50 border border-slate-200/80 rounded-lg px-2 py-1">
+              <span class="font-mono text-slate-700 cursor-text" ondblclick="enableInlineNumberEdit(this.parentElement, '${task.id}', 'depositAmount')" title="雙擊修改訂金金額">
+                ${depositNum > 0 ? formatNT(depositNum) : 'NT$ 0'}
+              </span>
+              <label class="inline-flex items-center gap-1 cursor-pointer select-none shrink-0">
+                <input
+                  type="checkbox"
+                  ${task.depositPaid ? 'checked' : ''}
+                  onchange="toggleDepositPaid('${task.id}', this.checked)"
+                  class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                />
+                <span class="text-[11px] font-semibold ${task.depositPaid ? 'text-emerald-700' : 'text-slate-400'}">
+                  ${task.depositPaid ? '已收' : '未收'}
+                </span>
+              </label>
+            </div>
+          </td>
+
+          <!-- Invoice No. & Date -->
+          <td class="py-2.5 px-3 text-xs font-mono" ondblclick="enableInlineInvoiceEdit(this, '${task.id}')">
+            <div class="cursor-pointer group/inv" title="雙擊編輯發票號碼與開立日">
+              ${task.invoiceNo
+                ? `<div class="font-semibold text-slate-800">${escapeHtml(task.invoiceNo)}</div>
+                   <div class="text-[11px] text-slate-500">${task.invoiceDate || '未填開立日'}</div>`
+                : `<span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded bg-amber-50/80 text-amber-700 border border-amber-200/70">尚未開立發票</span>`
+              }
+            </div>
+          </td>
+
+          <!-- Billing / Closure Status Pill Dropdown -->
+          <td class="py-2.5 px-3">
+            <select
+              onchange="updateTaskStatus('${task.id}', this.value)"
+              class="text-xs font-semibold px-2.5 py-1 rounded-full border cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500/30 transition ${statusClass}"
+            >
+              ${STATUS_ORDER.map(st =>
+                `<option value="${st}" class="bg-white text-slate-800" ${task.status === st ? 'selected' : ''}>${st}</option>`
+              ).join('')}
+            </select>
+          </td>
+
+          <!-- Target Billing / Closing Date -->
+          <td class="py-2.5 px-3 text-xs font-mono" ondblclick="enableInlineDateEdit(this, '${task.id}', 'targetDate')">
+            <div class="inline-flex items-center gap-1 cursor-pointer ${overdue ? 'px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 font-bold border border-rose-200' : 'text-slate-600 hover:text-brand-600'}" title="${overdue ? '已逾期未請款/未收款！雙擊修改日期' : '雙擊修改預計請款/結案日'}">
+              ${overdue ? '<i data-lucide="clock-alert" class="w-3.5 h-3.5 text-rose-600 shrink-0"></i>' : ''}
+              <span>${task.targetDate || '-'}</span>
+            </div>
+          </td>
+
+          <!-- Notes / Acceptance No. -->
+          <td class="py-2.5 px-3 text-xs text-slate-600 max-w-[240px]" ondblclick="enableInlineTextEdit(this, '${task.id}', 'notes')">
+            <p class="truncate cursor-text hover:text-slate-900" title="${escapeHtml(task.notes || '')} (雙擊編輯備註/驗收單號)">
+              ${escapeHtml(task.notes || '—')}
+            </p>
+          </td>
+
+          <!-- Row Actions -->
+          <td class="py-2.5 pl-2 pr-4 text-right">
+            <div class="inline-flex items-center justify-end gap-1">
+              <button onclick="openInvoiceModalSingle('${task.id}')" title="生成請款單 (A4 PDF / 列印)" class="p-1.5 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer">
+                <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+              </button>
+              <button onclick="openEditTaskModal('${task.id}')" title="完整編輯請款與發票明細" class="p-1.5 rounded-md text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition cursor-pointer">
+                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+              </button>
+              <button onclick="confirmDeleteSingleTask('${task.id}')" title="刪除此筆紀錄" class="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
+    // =========================================================================
+    // 5. INLINE EDITING & INTERACTIONS
+    // =========================================================================
+    function updateTaskStatus(id, newStatus) {
+      const task = tasks.find(t => t.id === id);
+      if (!task) return;
+      task.status = newStatus;
+
+      // Auto-mark deposit paid when moving to '已收訂金' or '已完成/完結' if deposit > 0
+      if ((newStatus === '已收訂金' || newStatus === '已完成/完結') && (Number(task.depositAmount) || 0) > 0) {
+        task.depositPaid = true;
+      }
+
+      saveTasks();
+      refreshUI();
+      showToast(`狀態已更新為「${newStatus}」`, newStatus === '已完成/完結' ? 'success' : 'info');
+    }
+
+    function toggleDepositPaid(id, paid) {
+      const task = tasks.find(t => t.id === id);
+      if (!task) return;
+      task.depositPaid = paid;
+      if (paid && task.status === '待確認訂單') {
+        task.status = '已收訂金';
+      }
+      saveTasks();
+      refreshUI();
+      showToast(paid ? '已標記訂金入帳' : '已取消訂金入帳標記', paid ? 'success' : 'info');
+    }
+
+    function enableInlineTextEdit(cell, id, field) {
+      if (cell.querySelector('input')) return;
+      const task = tasks.find(t => t.id === id);
+      if (!task) return;
+
+      const originalVal = task[field] || '';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = originalVal;
+      input.className = 'w-full px-2 py-1 text-xs bg-white border border-brand-500 rounded shadow-xs focus:outline-none text-slate-900';
+
+      const commit = () => {
+        const trimmed = input.value.trim();
+        if (field === 'title' && !trimmed) {
+          refreshUI();
+          return;
+        }
+        task[field] = trimmed;
+        saveTasks();
+        refreshUI();
+      };
+
+      input.addEventListener('blur', commit);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          input.blur();
+        } else if (e.key === 'Escape') {
+          refreshUI();
+        }
+      });
+
+      cell.innerHTML = '';
+      cell.appendChild(input);
+      input.focus();
+      input.select();
+    }
+
+    function enableInlineNumberEdit(cell, id, field) {
+      if (cell.querySelector('input[type="number"]')) return;
+      const task = tasks.find(t => t.id === id);
+      if (!task) return;
+
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.min = '0';
+      input.step = '1';
+      input.value = Number(task[field]) || 0;
+      input.className = 'w-full px-2 py-1 text-xs font-mono text-right bg-white border border-brand-500 rounded shadow-xs focus:outline-none text-slate-900';
+
+      const commit = () => {
+        const val = Math.max(0, Number(input.value) || 0);
+        task[field] = val;
+        saveTasks();
+        refreshUI();
+      };
+
+      input.addEventListener('blur', commit);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          input.blur();
+        } else if (e.key === 'Escape') {
+          refreshUI();
+        }
+      });
+
+      cell.innerHTML = '';
+      cell.appendChild(input);
+      input.focus();
+      input.select();
+    }
+
+    function enableInlineInvoiceEdit(cell, id) {
+      if (cell.querySelector('input')) return;
+      const task = tasks.find(t => t.id === id);
+      if (!task) return;
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'flex flex-col gap-1';
+
+      const noInput = document.createElement('input');
+      noInput.type = 'text';
+      noInput.placeholder = '發票號碼 (如 UV-12345678)';
+      noInput.value = task.invoiceNo || '';
+      noInput.className = 'w-full px-2 py-0.5 text-xs font-mono bg-white border border-brand-500 rounded focus:outline-none';
+
+      const dateInput = document.createElement('input');
+      dateInput.type = 'date';
+      dateInput.value = task.invoiceDate || getTodayISO();
+      dateInput.className = 'w-full px-2 py-0.5 text-[11px] font-mono bg-white border border-slate-300 rounded focus:outline-none';
+
+      const commit = () => {
+        task.invoiceNo = noInput.value.trim();
+        task.invoiceDate = task.invoiceNo ? dateInput.value : '';
+        if (task.invoiceNo && task.status === '待提出發票') {
+          task.status = '已請款待收款';
+        }
+        saveTasks();
+        refreshUI();
+      };
+
+      wrapper.appendChild(noInput);
+      wrapper.appendChild(dateInput);
+      cell.innerHTML = '';
+      cell.appendChild(wrapper);
+      noInput.focus();
+      noInput.select();
+
+      const handleFocusOut = (e) => {
+        setTimeout(() => {
+          if (!wrapper.contains(document.activeElement)) {
+            commit();
+          }
+        }, 100);
+      };
+
+      noInput.addEventListener('blur', handleFocusOut);
+      dateInput.addEventListener('blur', handleFocusOut);
+      noInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') commit();
+        if (e.key === 'Escape') refreshUI();
+      });
+    }
+
+    function enableInlineDateEdit(cell, id, field) {
+      if (cell.querySelector('input')) return;
+      const task = tasks.find(t => t.id === id);
+      if (!task) return;
+
+      const input = document.createElement('input');
+      input.type = 'date';
+      input.value = task[field] || '';
+      input.className = 'px-1.5 py-0.5 text-xs bg-white border border-brand-500 rounded focus:outline-none text-slate-900';
+
+      const commit = () => {
+        task[field] = input.value;
+        saveTasks();
+        refreshUI();
+      };
+
+      input.addEventListener('blur', commit);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') input.blur();
+        if (e.key === 'Escape') refreshUI();
+      });
+
+      cell.innerHTML = '';
+      cell.appendChild(input);
+      input.focus();
+    }
+
+    // =========================================================================
+    // 6. QUICK ADD & MODAL ADD/EDIT
+    // =========================================================================
+    function handleQuickAddKeydown(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        submitQuickAdd();
+      }
+    }
+
+    function submitQuickAdd() {
+      const titleInput = document.getElementById('quick-title');
+      const title = titleInput.value.trim();
+      if (!title) {
+        titleInput.focus();
+        showToast('請先輸入專案或訂單名稱', 'warning');
+        return;
+      }
+
+      const client = document.getElementById('quick-client').value.trim() || '未指定客戶';
+      const orderNo = document.getElementById('quick-order-no').value.trim();
+      const totalAmount = Math.max(0, Number(document.getElementById('quick-total-amount').value) || 0);
+      const depositAmount = Math.max(0, Number(document.getElementById('quick-deposit-amount').value) || 0);
+      const depositPaid = document.getElementById('quick-deposit-paid').checked;
+      const rawInv = document.getElementById('quick-invoice').value.trim();
+      const status = document.getElementById('quick-status').value;
+      const targetDate = document.getElementById('quick-target-date').value || addDaysISO(getTodayISO(), 14);
+      const notes = document.getElementById('quick-notes').value.trim();
+
+      const newTask = {
+        id: 'ord-' + Date.now(),
+        title,
+        client,
+        orderNo,
+        totalAmount,
+        depositAmount,
+        depositPaid: status === '已完成/完結' && depositAmount > 0 ? true : depositPaid,
+        invoiceNo: rawInv,
+        invoiceDate: rawInv ? getTodayISO() : '',
+        status,
+        targetDate,
+        notes
+      };
+
+      tasks.push(newTask);
+      saveTasks();
+
+      // Clear quick fields
+      titleInput.value = '';
+      document.getElementById('quick-order-no').value = '';
+      document.getElementById('quick-total-amount').value = '';
+      document.getElementById('quick-deposit-amount').value = '';
+      document.getElementById('quick-deposit-paid').checked = false;
+      document.getElementById('quick-invoice').value = '';
+      document.getElementById('quick-notes').value = '';
+      titleInput.focus();
+
+      refreshUI();
+      showToast(`已新增訂單「${title}」`, 'success');
+    }
+
+    function openNewTaskModal() {
+      document.getElementById('modal-title').textContent = '新增專案訂單與請款追蹤';
+      document.getElementById('modal-task-id').value = '';
+      document.getElementById('modal-title-input').value = '';
+      document.getElementById('modal-client-input').value = '';
+      document.getElementById('modal-order-no-input').value = `ORD-${new Date().getFullYear()}-`;
+      document.getElementById('modal-total-amount-input').value = '';
+      document.getElementById('modal-deposit-amount-input').value = '';
+      document.getElementById('modal-deposit-paid-input').checked = false;
+      document.getElementById('modal-invoice-no-input').value = '';
+      document.getElementById('modal-invoice-date-input').value = '';
+      document.getElementById('modal-status-input').value = '待確認訂單';
+      document.getElementById('modal-target-date-input').value = addDaysISO(getTodayISO(), 14);
+      document.getElementById('modal-notes-input').value = '';
+
+      const modal = document.getElementById('task-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      document.getElementById('modal-title-input').focus();
+    }
+
+    function openEditTaskModal(id) {
+      const task = tasks.find(t => t.id === id);
+      if (!task) return;
+
+      document.getElementById('modal-title').textContent = '編輯專案訂單與請款明細';
+      document.getElementById('modal-task-id').value = task.id;
+      document.getElementById('modal-title-input').value = task.title;
+      document.getElementById('modal-client-input').value = task.client || '';
+      document.getElementById('modal-order-no-input').value = task.orderNo || '';
+      document.getElementById('modal-total-amount-input').value = Number(task.totalAmount) || 0;
+      document.getElementById('modal-deposit-amount-input').value = Number(task.depositAmount) || 0;
+      document.getElementById('modal-deposit-paid-input').checked = Boolean(task.depositPaid);
+      document.getElementById('modal-invoice-no-input').value = task.invoiceNo || '';
+      document.getElementById('modal-invoice-date-input').value = task.invoiceDate || '';
+      document.getElementById('modal-status-input').value = task.status;
+      document.getElementById('modal-target-date-input').value = task.targetDate || '';
+      document.getElementById('modal-notes-input').value = task.notes || '';
+
+      const modal = document.getElementById('task-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeTaskModal() {
+      const modal = document.getElementById('task-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function handleModalStatusChange() {
+      const st = document.getElementById('modal-status-input').value;
+      const depAmt = Number(document.getElementById('modal-deposit-amount-input').value) || 0;
+      if ((st === '已收訂金' || st === '已完成/完結') && depAmt > 0) {
+        document.getElementById('modal-deposit-paid-input').checked = true;
+      }
+    }
+
+    function saveTaskFromModal(e) {
+      e.preventDefault();
+      const id = document.getElementById('modal-task-id').value;
+      const status = document.getElementById('modal-status-input').value;
+      const depositAmount = Math.max(0, Number(document.getElementById('modal-deposit-amount-input').value) || 0);
+      let depositPaid = document.getElementById('modal-deposit-paid-input').checked;
+
+      if ((status === '已收訂金' || status === '已完成/完結') && depositAmount > 0) {
+        depositPaid = true;
+      }
+
+      const payload = {
+        title: document.getElementById('modal-title-input').value.trim(),
+        client: document.getElementById('modal-client-input').value.trim() || '未指定客戶',
+        orderNo: document.getElementById('modal-order-no-input').value.trim(),
+        totalAmount: Math.max(0, Number(document.getElementById('modal-total-amount-input').value) || 0),
+        depositAmount,
+        depositPaid,
+        invoiceNo: document.getElementById('modal-invoice-no-input').value.trim(),
+        invoiceDate: document.getElementById('modal-invoice-date-input').value,
+        status,
+        targetDate: document.getElementById('modal-target-date-input').value,
+        notes: document.getElementById('modal-notes-input').value.trim(),
+      };
+
+      if (id) {
+        const idx = tasks.findIndex(t => t.id === id);
+        if (idx !== -1) {
+          tasks[idx] = { ...tasks[idx], ...payload };
+          showToast('請款與訂單資料已更新', 'success');
+        }
+      } else {
+        tasks.push({
+          id: 'ord-' + Date.now(),
+          ...payload
+        });
+        showToast('已建立新專案訂單', 'success');
+      }
+
+      saveTasks();
+      closeTaskModal();
+      refreshUI();
+    }
+
+    // =========================================================================
+    // 7. VIEW MODES, SORTING, SELECTION & DELETION
+    // =========================================================================
+    function setViewMode(mode) {
+      viewMode = mode;
+      document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.classList.remove('bg-white', 'text-slate-900', 'shadow-2xs');
+        btn.classList.add('text-slate-600');
+      });
+      const activeBtn = document.getElementById(`btn-view-${mode}`);
+      if (activeBtn) {
+        activeBtn.classList.add('bg-white', 'text-slate-900', 'shadow-2xs');
+        activeBtn.classList.remove('text-slate-600');
+      }
+      renderTable();
+      lucide.createIcons();
+    }
+
+    function toggleGroupCollapse(groupId) {
+      if (collapsedGroups.has(groupId)) {
+        collapsedGroups.delete(groupId);
+      } else {
+        collapsedGroups.add(groupId);
+      }
+      renderTable();
+      lucide.createIcons();
+    }
+
+    function toggleSort(field) {
+      if (sortConfig.field === field) {
+        if (sortConfig.direction === 'asc') {
+          sortConfig.direction = 'desc';
+        } else {
+          sortConfig.field = null;
+          sortConfig.direction = 'asc';
+        }
+      } else {
+        sortConfig.field = field;
+        sortConfig.direction = field === 'totalAmount' ? 'desc' : 'asc';
+      }
+      renderTable();
+      lucide.createIcons();
+    }
+
+    function handleFilterChange() {
+      const search = document.getElementById('search-input').value;
+      const st = document.getElementById('filter-status').value;
+      const cl = document.getElementById('filter-client').value;
+      const al = document.getElementById('filter-alert').value;
+
+      document.getElementById('clear-search-btn').classList.toggle('hidden', !search);
+      const hasActiveFilter = Boolean(search || st !== 'ALL' || cl !== 'ALL' || al !== 'ALL');
+      document.getElementById('reset-filters-btn').classList.toggle('hidden', !hasActiveFilter);
+
+      renderTable();
+      lucide.createIcons();
+    }
+
+    function clearSearch() {
+      document.getElementById('search-input').value = '';
+      handleFilterChange();
+    }
+
+    function resetFilters() {
+      document.getElementById('search-input').value = '';
+      document.getElementById('filter-status').value = 'ALL';
+      document.getElementById('filter-client').value = 'ALL';
+      document.getElementById('filter-alert').value = 'ALL';
+      handleFilterChange();
+    }
+
+    function toggleSelectTask(id, checked) {
+      if (checked) {
+        selectedIds.add(id);
+      } else {
+        selectedIds.delete(id);
+      }
+      updateBulkSelectionUI();
+      renderTable();
+      lucide.createIcons();
+    }
+
+    function toggleSelectAll(checked) {
+      const visible = getFilteredAndSortedTasks();
+      if (checked) {
+        visible.forEach(t => selectedIds.add(t.id));
+      } else {
+        visible.forEach(t => selectedIds.delete(t.id));
+      }
+      updateBulkSelectionUI();
+      renderTable();
+      lucide.createIcons();
+    }
+
+    function updateBulkSelectionUI() {
+      const btn = document.getElementById('bulk-delete-btn');
+      const invBtn = document.getElementById('bulk-invoice-btn');
+      const countSpan = document.getElementById('selected-count');
+      const invCountSpan = document.getElementById('selected-invoice-count');
+      const selectAllBox = document.getElementById('select-all-checkbox');
+
+      countSpan.textContent = selectedIds.size;
+      invCountSpan.textContent = selectedIds.size;
+
+      if (selectedIds.size > 0) {
+        btn.classList.remove('hidden');
+        btn.classList.add('inline-flex');
+        invBtn.classList.remove('hidden');
+        invBtn.classList.add('inline-flex');
+      } else {
+        btn.classList.add('hidden');
+        btn.classList.remove('inline-flex');
+        invBtn.classList.add('hidden');
+        invBtn.classList.remove('inline-flex');
+      }
+
+      const visible = getFilteredAndSortedTasks();
+      selectAllBox.checked = visible.length > 0 && visible.every(t => selectedIds.has(t.id));
+    }
+
+    function openConfirmModal(title, message, onConfirm) {
+      document.getElementById('confirm-modal-title').textContent = title;
+      document.getElementById('confirm-modal-message').textContent = message;
+      pendingConfirmCallback = onConfirm;
+      const modal = document.getElementById('confirm-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeConfirmModal() {
+      const modal = document.getElementById('confirm-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      pendingConfirmCallback = null;
+    }
+
+    document.getElementById('confirm-modal-action-btn').addEventListener('click', () => {
+      if (typeof pendingConfirmCallback === 'function') {
+        pendingConfirmCallback();
+      }
+      closeConfirmModal();
+    });
+
+    function confirmDeleteSingleTask(id) {
+      const task = tasks.find(t => t.id === id);
+      if (!task) return;
+      openConfirmModal(
+        '刪除訂單與請款紀錄',
+        `確定要刪除「${task.title}」（${task.client}）嗎？刪除後將無法復原。`,
+        () => {
+          tasks = tasks.filter(t => t.id !== id);
+          selectedIds.delete(id);
+          saveTasks();
+          refreshUI();
+          showToast('已刪除該筆紀錄');
+        }
+      );
+    }
+
+    function deleteSelectedTasks() {
+      if (selectedIds.size === 0) return;
+      const count = selectedIds.size;
+      openConfirmModal(
+        '批次刪除紀錄',
+        `確定要刪除已勾選的 ${count} 筆訂單/請款紀錄嗎？此操作無法復原。`,
+        () => {
+          tasks = tasks.filter(t => !selectedIds.has(t.id));
+          selectedIds.clear();
+          saveTasks();
+          refreshUI();
+          showToast(`已批次刪除 ${count} 筆紀錄`);
+        }
+      );
+    }
+
+    function openConfirmResetModal() {
+      openConfirmModal(
+        '重置為預設範例資料',
+        '這將會覆蓋您目前的所有編輯紀錄，並還原為台灣工程與設計接案請款範例資料。確定要繼續嗎？',
+        () => {
+          tasks = getDefaultSampleTasks();
+          selectedIds.clear();
+          collapsedGroups.clear();
+          saveTasks();
+          resetFilters();
+          refreshUI();
+          showToast('已還原為預設範例資料', 'success');
+        }
+      );
+    }
+
+    // =========================================================================
+    // 8. A4 BILLING INVOICE GENERATION, PRINT & PDF EXPORT
+    // =========================================================================
+    function openInvoiceModalSingle(id) {
+      const task = tasks.find(t => t.id === id);
+      if (!task) return;
+      openInvoiceModalWithTasks([task]);
+    }
+
+    function openInvoiceModalForSelection() {
+      let chosen = tasks.filter(t => selectedIds.has(t.id));
+      if (chosen.length === 0) {
+        chosen = getFilteredAndSortedTasks();
+      }
+      if (chosen.length === 0) {
+        showToast('目前沒有可生成請款單的案件', 'warning');
+        return;
+      }
+      openInvoiceModalWithTasks(chosen);
+    }
+
+    function openInvoiceModalWithTasks(targetList) {
+      invoiceTargetTasks = targetList;
+      const today = getTodayISO();
+      const serial = String(Math.floor(100 + Math.random() * 900));
+      document.getElementById('inv-doc-no').value = `REQ-${today.replace(/-/g, '')}-${serial}`;
+      document.getElementById('inv-doc-date').value = today;
+
+      renderInvoiceDocument();
+      const modal = document.getElementById('invoice-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      lucide.createIcons();
+    }
+
+    function closeInvoiceModal() {
+      const modal = document.getElementById('invoice-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function renderInvoiceDocument() {
+      const sheet = document.getElementById('a4-invoice-sheet');
+      if (!sheet || invoiceTargetTasks.length === 0) return;
+
+      const docNo = document.getElementById('inv-doc-no').value.trim() || `REQ-${getTodayISO().replace(/-/g, '')}`;
+      const docDate = document.getElementById('inv-doc-date').value || getTodayISO();
+      const issuerName = document.getElementById('inv-issuer-name').value.trim() || 'ProGrid 設計與工程顧問有限公司';
+      const bankInfo = document.getElementById('inv-bank-info').value.trim();
+
+      const uniqueClients = Array.from(new Set(invoiceTargetTasks.map(t => t.client || '未指定客戶')));
+      const clientDisplay = uniqueClients.length === 1 ? uniqueClients[0] : `${uniqueClients[0]} 等 ${uniqueClients.length} 家客戶`;
+
+      const latestDueDate = invoiceTargetTasks
+        .map(t => t.targetDate)
+        .filter(Boolean)
+        .sort()
+        .slice(-1)[0] || addDaysISO(docDate, 30);
+
+      let sumContractTotal = 0;
+      let sumPaidDeposit = 0;
+      let sumPayableDue = 0;
+
+      const rowsHtml = invoiceTargetTasks.map((t, idx) => {
+        const total = Number(t.totalAmount) || 0;
+        const deposit = Number(t.depositAmount) || 0;
+        const paid = getCollectedAmountForTask(t);
+        const due = Math.max(0, total - paid);
+
+        sumContractTotal += total;
+        sumPaidDeposit += paid;
+        sumPayableDue += due;
+
+        return `
+          <tr class="border-b border-slate-300 text-[12px]">
+            <td class="py-2.5 px-2 text-center font-mono text-slate-600 align-top">${idx + 1}</td>
+            <td class="py-2.5 px-2.5 align-top">
+              <div class="font-bold text-slate-900">${escapeHtml(t.title)}</div>
+              ${uniqueClients.length > 1 ? `<div class="text-[11px] text-slate-600 mt-0.5">客戶：${escapeHtml(t.client || '未指定客戶')}</div>` : ''}
+              ${t.notes ? `<div class="text-[11px] text-slate-500 mt-0.5 leading-relaxed">${escapeHtml(t.notes)}</div>` : ''}
+            </td>
+            <td class="py-2.5 px-2 font-mono text-[11px] text-slate-700 align-top">
+              <div>${escapeHtml(t.orderNo || '—')}</div>
+              ${t.invoiceNo ? `<div class="text-slate-500 mt-0.5">發票：${escapeHtml(t.invoiceNo)}</div>` : ''}
+            </td>
+            <td class="py-2.5 px-2 text-right font-mono text-slate-800 align-top">${total.toLocaleString('zh-TW')}</td>
+            <td class="py-2.5 px-2 text-right font-mono text-slate-600 align-top">
+              ${paid > 0 ? '-' + paid.toLocaleString('zh-TW') : (deposit > 0 ? `(${deposit.toLocaleString('zh-TW')}未收)` : '0')}
+            </td>
+            <td class="py-2.5 px-2.5 text-right font-mono font-bold text-slate-900 align-top">${due.toLocaleString('zh-TW')}</td>
+          </tr>
+        `;
+      }).join('');
+
+      sheet.innerHTML = `
+        <div>
+          <!-- Top Header -->
+          <div class="border-b-2 border-slate-900 pb-4 flex items-start justify-between gap-4">
+            <div>
+              <div class="text-[11px] font-bold tracking-[0.2em] text-indigo-700 uppercase">STATEMENT OF ACCOUNT / BILLING REQUEST</div>
+              <h1 class="text-2xl font-bold tracking-widest text-slate-900 mt-1">請 款 單</h1>
+              <p class="text-xs text-slate-600 mt-1.5 font-medium">${escapeHtml(issuerName)}</p>
+            </div>
+            <div class="text-right text-xs space-y-1">
+              <div class="inline-block px-2.5 py-1 bg-slate-900 text-white font-mono font-semibold text-[11px] rounded-xs">
+                A4 正式請款憑證
+              </div>
+              <div class="pt-1 font-mono text-slate-700">請款單號：<strong>${escapeHtml(docNo)}</strong></div>
+              <div class="font-mono text-slate-700">請款日期：${escapeHtml(docDate)}</div>
+              <div class="font-mono text-slate-700">預計付款日：${escapeHtml(latestDueDate)}</div>
+            </div>
+          </div>
+
+          <!-- Client & Billing Meta Box -->
+          <div class="grid grid-cols-2 gap-4 my-5 text-xs">
+            <div class="border border-slate-300 rounded-md p-3.5 bg-slate-50/60">
+              <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">請款對象（買受人 / 客戶）</div>
+              <div class="text-base font-bold text-slate-900">${escapeHtml(clientDisplay)}</div>
+              <div class="text-slate-600 mt-1.5">案件筆數：共 ${invoiceTargetTasks.length} 筆專案工項</div>
+            </div>
+            <div class="border border-slate-300 rounded-md p-3.5 bg-slate-50/60">
+              <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">匯款與收款帳戶資訊</div>
+              <div class="text-slate-800 font-medium leading-relaxed">${escapeHtml(bankInfo || '請依合約指定帳戶匯款')}</div>
+              <div class="text-slate-600 mt-1">戶名：${escapeHtml(issuerName)}</div>
+            </div>
+          </div>
+
+          <!-- Line Items Table -->
+          <table class="w-full border-collapse border-t-2 border-slate-800">
+            <thead>
+              <tr class="bg-slate-100 border-b border-slate-400 text-[11px] font-bold text-slate-700">
+                <th class="py-2 px-2 w-10 text-center">項次</th>
+                <th class="py-2 px-2.5 text-left">專案 / 訂單工項與驗收說明</th>
+                <th class="py-2 px-2 w-32 text-left">訂單 / 發票號</th>
+                <th class="py-2 px-2 w-24 text-right">契約總額</th>
+                <th class="py-2 px-2 w-24 text-right">已收款項</th>
+                <th class="py-2 px-2.5 w-28 text-right">本次應請金額</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+
+          <!-- Financial Summary Box -->
+          <div class="mt-5 flex justify-end">
+            <div class="w-72 border border-slate-300 rounded-md overflow-hidden text-xs">
+              <div class="flex justify-between px-3.5 py-2 border-b border-slate-200 bg-slate-50">
+                <span class="text-slate-600">契約專案總金額（含稅）</span>
+                <span class="font-mono font-semibold text-slate-800">${formatNT(sumContractTotal)}</span>
+              </div>
+              <div class="flex justify-between px-3.5 py-2 border-b border-slate-200">
+                <span class="text-slate-600">扣除已收訂金 / 已入帳</span>
+                <span class="font-mono text-emerald-700">- ${formatNT(sumPaidDeposit)}</span>
+              </div>
+              <div class="flex justify-between px-3.5 py-2.5 bg-slate-900 text-white font-bold text-sm">
+                <span>本次請款總計</span>
+                <span class="font-mono">${formatNT(sumPayableDue)}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Terms & Remarks -->
+          <div class="mt-6 border-t border-dashed border-slate-300 pt-3.5 text-[11px] text-slate-600 space-y-1">
+            <div class="font-bold text-slate-800">請款說明與注意事項：</div>
+            <p>1. 本請款單金額均為新台幣（NT$）含稅價，煩請於預計付款日前完成匯款作業。</p>
+            <p>2. 匯款完成後請通知承辦窗口並提供匯款帳號後五碼，以便核銷帳務並開立／寄送正式統一發票。</p>
+          </div>
+        </div>
+
+        <!-- Bottom Signature Section -->
+        <div class="pt-8 mt-8 border-t border-slate-300 grid grid-cols-3 gap-6 text-xs text-slate-700">
+          <div>
+            <div class="font-semibold mb-8">請款單位經辦 / 覆核：</div>
+            <div class="border-b border-slate-400"></div>
+          </div>
+          <div>
+            <div class="font-semibold mb-8">請款單位公司章：</div>
+            <div class="border-b border-slate-400"></div>
+          </div>
+          <div>
+            <div class="font-semibold mb-8">客戶簽收 / 核准章：</div>
+            <div class="border-b border-slate-400"></div>
+          </div>
+        </div>
+      `;
+    }
+
+    function printInvoiceA4() {
+      window.print();
+    }
+
+    function downloadInvoicePDF() {
+      const element = document.getElementById('a4-invoice-sheet');
+      if (!element) return;
+
+      const btn = document.getElementById('btn-download-invoice-pdf');
+      const docNo = document.getElementById('inv-doc-no').value.trim() || `請款單_${getTodayISO()}`;
+      const clientName = invoiceTargetTasks.length === 1 && invoiceTargetTasks[0].client
+        ? `_${invoiceTargetTasks[0].client}`
+        : '';
+
+      if (typeof html2pdf === 'undefined') {
+        showToast('PDF 元件載入中，為您開啟系統列印另存 PDF', 'info');
+        window.print();
+        return;
+      }
+
+      btn.disabled = true;
+      btn.classList.add('opacity-70');
+
+      const opt = {
+        margin: 0,
+        filename: `${docNo}${clientName}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      html2pdf()
+        .set(opt)
+        .from(element)
+        .save()
+        .then(() => {
+          showToast(`已匯出 A4 請款單 PDF（${docNo}${clientName}.pdf）`, 'success');
+        })
+        .catch(() => {
+          showToast('PDF 匯出發生異常，請改用「列印 (A4)」另存為 PDF', 'error');
+        })
+        .finally(() => {
+          btn.disabled = false;
+          btn.classList.remove('opacity-70');
+        });
+    }
+
+    // =========================================================================
+    // 9. CSV & JSON EXPORT / IMPORT
+    // =========================================================================
+    function exportCSV() {
+      const visibleTasks = getFilteredAndSortedTasks();
+      const headers = [
+        '專案/訂單工項名稱',
+        '客戶名稱',
+        '訂單編號/報價單號',
+        '專案總金額(NT$)',
+        '訂金金額(NT$)',
+        '訂金狀態',
+        '發票號碼',
+        '發票開立日',
+        '請款狀態',
+        '預計請款日/結案日',
+        '是否逾期',
+        '實收金額(NT$)',
+        '備註/驗收單號'
+      ];
+
+      let sumTotal = 0;
+      let sumDeposit = 0;
+      let sumCollected = 0;
+
+      const rows = visibleTasks.map(t => {
+        const total = Number(t.totalAmount) || 0;
+        const deposit = Number(t.depositAmount) || 0;
+        const collected = getCollectedAmountForTask(t);
+        sumTotal += total;
+        sumDeposit += deposit;
+        sumCollected += collected;
+
+        return [
+          t.title,
+          t.client,
+          t.orderNo,
+          total,
+          deposit,
+          t.depositPaid ? '已收' : '未收',
+          t.invoiceNo,
+          t.invoiceDate,
+          t.status,
+          t.targetDate,
+          isTaskBillingOverdue(t) ? '逾期' : '正常',
+          collected,
+          t.notes
+        ];
+      });
+
+      // Summary total row for Excel
+      rows.push([
+        '合計 (總計 ' + visibleTasks.length + ' 筆)',
+        '',
+        '',
+        sumTotal,
+        sumDeposit,
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        sumCollected,
+        ''
+      ]);
+
+      const escapeCSVCell = (val) => {
+        const str = String(val ?? '');
+        if (str.includes('"') || str.includes(',') || str.includes('\n')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+
+      const csvContent = [
+        headers.map(escapeCSVCell).join(','),
+        ...rows.map(r => r.map(escapeCSVCell).join(','))
+      ].join('\r\n');
+
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `專案請款與訂單報表_${getTodayISO()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast('已匯出 Excel 相容請款 CSV 報表（含金額加總）', 'success');
+    }
+
+    function exportJSON() {
+      const blob = new Blob([JSON.stringify(tasks, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ProGrid_請款備份_${getTodayISO()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast('已下載 JSON 備份檔案', 'success');
+    }
+
+    function importJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (!Array.isArray(imported)) {
+            throw new Error('格式不符');
+          }
+          tasks = imported.map((item, index) => ({
+            id: item.id || `ord-imp-${Date.now()}-${index}`,
+            title: String(item.title || '未命名訂單'),
+            client: String(item.client || '未指定客戶'),
+            orderNo: String(item.orderNo || ''),
+            totalAmount: Math.max(0, Number(item.totalAmount) || 0),
+            depositAmount: Math.max(0, Number(item.depositAmount) || 0),
+            depositPaid: Boolean(item.depositPaid),
+            invoiceNo: String(item.invoiceNo || ''),
+            invoiceDate: String(item.invoiceDate || ''),
+            status: STATUS_ORDER.includes(item.status) ? item.status : '待確認訂單',
+            targetDate: String(item.targetDate || ''),
+            notes: String(item.notes || '')
+          }));
+          selectedIds.clear();
+          saveTasks();
+          refreshUI();
+          showToast(`成功匯入 ${tasks.length} 筆請款與訂單資料`, 'success');
+        } catch (err) {
+          showToast('JSON 檔案格式錯誤，請確認是否為有效的備份檔', 'error');
+        } finally {
+          event.target.value = '';
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // =========================================================================
+    // 10. UTILITIES (XSS Escape & Toast)
+    // =========================================================================
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function escapeJsString(str) {
+      return String(str ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+
+      const styles = {
+        success: 'bg-slate-900 text-white border-emerald-500/40',
+        error:   'bg-rose-600 text-white border-rose-400',
+        warning: 'bg-amber-600 text-white border-amber-400',
+        info:    'bg-slate-800 text-white border-slate-700'
+      };
+
+      toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-2.5 rounded-xl border shadow-lg text-xs font-medium transition-all duration-200 ${styles[type] || styles.info}`;
+      toast.innerHTML = `<span>${escapeHtml(message)}</span>`;
+
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(8px)';
+        setTimeout(() => toast.remove(), 200);
+      }, 2800);
+    }
+
+    // Boot application
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>
